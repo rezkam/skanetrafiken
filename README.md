@@ -6,6 +6,10 @@ An [Agent Skills](https://agentskills.io) compatible skill for AI agents.
 
 ## Installation
 
+### Clawdhub
+
+Install from [clawdhub.com/rezkam/skanetrafiken](https://clawdhub.com/rezkam/skanetrafiken)
+
 ### Claude Code
 
 ```bash
@@ -15,7 +19,7 @@ git clone https://github.com/rezkam/skanetrafiken.git ~/.claude/skills/skanetraf
 ### Clawdbot
 
 ```bash
-git clone https://github.com/rezkam/skanetrafiken.git ~/clawd/skills/skanetrafiken
+git clone https://github.com/rezkam/skanetrafiken.git ~/clawdbot/skills/skanetrafiken
 ```
 
 ## Requirements
