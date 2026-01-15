@@ -41,4 +41,4 @@ See [SKILL.md](SKILL.md) for complete usage guide, query formatting rules, and e
 
 ## License
 
-GPL-3.0
+MIT
