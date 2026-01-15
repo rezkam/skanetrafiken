@@ -1,45 +1,69 @@
-# Skånetrafiken Trip Planner Skill
+# boring-but-good
 
-Plan public transport journeys in Skåne, Sweden with real-time information.
+> A personal collection of AI agent skills that are boring, but good.
 
-An [Agent Skills](https://agentskills.io) compatible skill for AI agents.
+This is a monorepo containing various skills for AI agents like Claude Code. Each skill is self-contained and follows the [Agent Skills](https://agentskills.io) specification.
+
+## Available Skills
+
+### 🚆 [skanetrafiken](./skanetrafiken)
+
+Plan public transport journeys in Skåne, Sweden with real-time departure information, delays, and cross-border support to Copenhagen.
+
+- **Features**: Real-time delays, flexible scheduling, platform info, disruption alerts
+- **Requirements**: `curl`, `jq`
+- **License**: MIT
+
+---
 
 ## Installation
 
-### Clawdhub
+### Individual Skill (Claude Code)
+
+Clone the repo and copy the skill you want:
 
 ```bash
-npx clawdhub@latest install skanetrafiken
-# or: pnpm dlx clawdhub@latest install skanetrafiken
-# or: bunx clawdhub@latest install skanetrafiken
+git clone https://github.com/rezkam/boring-but-good.git
+cp -r boring-but-good/skanetrafiken ~/.claude/skills/skanetrafiken
 ```
 
-Browse at [clawdhub.com/rezkam/skanetrafiken](https://clawdhub.com/rezkam/skanetrafiken)
-
-### Claude Code
+### Via Clawdhub
 
 ```bash
-git clone https://github.com/rezkam/skanetrafiken.git ~/.claude/skills/skanetrafiken
+npx clawdhub@latest install rezkam/boring-but-good/skanetrafiken
 ```
 
-## Requirements
+---
 
-- `curl` - HTTP requests
-- `jq` - JSON processing
+## Structure
 
-## Features
+```
+boring-but-good/
+├── README.md              # This file
+├── LICENSE
+└── skanetrafiken/         # Skåne public transport planner
+    ├── README.md
+    ├── SKILL.md
+    ├── trip.sh
+    ├── journey.sh
+    └── search-location.sh
+```
 
-- **Single-call trip planning** - Get journey options with one command
-- **Real-time delays** - Shows actual departure times with delay indicators
-- **Flexible scheduling** - Travel now, depart at, or arrive by specific times
-- **Platform info** - Track and platform numbers for each leg
-- **Disruption alerts** - Service disruption warnings when available
-- **Cross-border support** - Copenhagen trips via Öresundståg
+Each skill directory contains:
+- `SKILL.md` - Complete skill specification and usage guide
+- `README.md` - Quick overview and installation
+- Implementation scripts and tools
 
-## Usage
+---
 
-See [SKILL.md](SKILL.md) for complete usage guide, query formatting rules, and examples.
+## Contributing
+
+This is a personal collection. Feel free to fork and adapt for your own use.
+
+---
 
 ## License
 
-MIT
+MIT - See [LICENSE](./LICENSE) for details.
+
+Individual skills may have their own licenses - check each skill's directory.
