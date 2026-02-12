@@ -16,7 +16,7 @@ An agent that can read code but can't file a ticket is only half useful. This sk
 - **Fetch project metadata** — issue types, statuses, priorities, transitions (cached 24h)
 - **Raw API access** for anything the wrappers don't cover
 
-## 12 scripts
+## Scripts
 
 | Script | Purpose |
 |--------|---------|

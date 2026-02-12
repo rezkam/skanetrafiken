@@ -19,7 +19,7 @@ Dependency-Track tells you which of your 500 dependencies have known CVEs. This 
 - **View services** — external service dependencies
 - **Raw API access** — for anything the wrappers don't cover
 
-## 14 scripts
+## Scripts
 
 | Script | Purpose |
 |--------|---------|

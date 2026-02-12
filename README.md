@@ -46,7 +46,7 @@ Credentials live in `~/.boring/<skill>/` as separate files (`url`, `token`, etc.
 ./tests/test-all.sh
 ```
 
-510 tests covering argument validation, error messages, API compatibility, URL encoding, pagination, and regression cases for every bug we've fixed.
+Covers argument validation, error messages, API compatibility, URL encoding, pagination, and regression cases for every bug we've fixed.
 
 ## License
 

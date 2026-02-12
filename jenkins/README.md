@@ -19,7 +19,7 @@ Build broke? Instead of clicking through Jenkins UI, the agent can pull the stat
 - **Build queue** — what's waiting to run
 - **Abort builds** — stop a running build
 
-## 13 scripts
+## Scripts
 
 | Script | Purpose |
 |--------|---------|

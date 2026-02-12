@@ -16,7 +16,7 @@ SonarQube knows what's wrong with your code. Your agent should too. Instead of o
 - **Search projects** — find SonarQube projects by name
 - **Raw API access** — for anything the wrappers don't cover
 
-## 9 scripts
+## Scripts
 
 | Script | Purpose |
 |--------|---------|
