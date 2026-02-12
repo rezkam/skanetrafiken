@@ -49,4 +49,4 @@ See [SKILL.md](SKILL.md) for complete usage guide, LLM workflow, query formattin
 
 ## License
 
-MIT
+Apache License 2.0 — see [LICENSE](../LICENSE) in the repo root.

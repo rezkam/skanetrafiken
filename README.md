@@ -1,9 +1,53 @@
 # boring-but-good
 
-> A personal collection of AI agent skills that are boring, but good.
+I was bored. So I wrote some scripts to make my AI agents actually useful at the tedious stuff I don't want to do — checking builds, filing tickets, reviewing vulnerabilities, that kind of thing. Called it "boring" because that's what this work is. Called it "good" because it actually works.
 
-## Skills
+## What's in here
 
-### 🚆 [skanetrafiken](./skanetrafiken)
+Skills that give AI coding agents (Claude Code, etc.) the ability to interact with real dev infrastructure through shell scripts. No SDKs, no dependencies beyond `curl` and `jq`, no magic. Each skill is a directory with a `SKILL.md` that tells the agent what it can do and a `scripts/` folder that does it.
 
-Plan public transport journeys in Skåne, Sweden with real-time departure information, delays, and cross-border support to Copenhagen.
+| Skill | What it does |
+|-------|-------------|
+| [**jira**](jira/) | Create, view, update, transition, and search Jira issues. Works with Cloud and Server/DC via go-jira. |
+| [**jenkins**](jenkins/) | Check build status, read test failures, view console output, trigger builds, watch pipelines. |
+| [**sonarqube**](sonarqube/) | Fetch code quality issues, coverage metrics, security hotspots, quality gate status. |
+| [**dependency-track**](dependency-track/) | Query SCA findings, audit vulnerabilities, check project health, review policy violations. |
+| [**skanetrafiken**](skanetrafiken/) | Plan public transport journeys in southern Sweden with real-time delays. |
+
+## Getting started
+
+```bash
+git clone https://github.com/rezkam/boring-but-good.git
+cd boring-but-good
+./setup.sh
+```
+
+The setup script walks you through configuring whichever skills you need. It creates symlinks from the repo into your agent's skill directory, so `git pull` updates everything in place.
+
+## How it works
+
+Each skill follows the same structure:
+
+```
+skill-name/
+├── SKILL.md        # Agent reads this to know what's available
+├── scripts/
+│   ├── _config.sh  # Loads credentials from ~/.boring/<skill>/
+│   ├── _api.sh     # HTTP helper (one place for all curl calls)
+│   └── *.sh        # One script per operation
+└── README.md       # You're reading the human version
+```
+
+Credentials live in `~/.boring/<skill>/` as separate files (`url`, `token`, etc.). Never in the scripts, never in the repo.
+
+## Tests
+
+```bash
+./tests/test-all.sh
+```
+
+510 tests covering argument validation, error messages, API compatibility, URL encoding, pagination, and regression cases for every bug we've fixed.
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
