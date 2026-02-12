@@ -50,4 +50,4 @@ Credentials live in `~/.boring/<skill>/` as separate files (`url`, `token`, etc.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache License 2.0 — see [LICENSE](LICENSE).
