@@ -152,24 +152,24 @@ normalize_url() {
 # Ask for a URL with validation — loops until valid or empty (to skip)
 # Usage: ask_url <var_name> <prompt> <examples>
 ask_url() {
-    local var_name="$1" prompt_text="$2" examples="$3"
-    local raw_url="" url=""
+    local _askurl_var="$1" _askurl_prompt="$2" _askurl_examples="$3"
+    local _askurl_raw="" _askurl_result=""
 
     while true; do
-        ask raw_url "$prompt_text"
-        if [ -z "$raw_url" ]; then
-            eval "$var_name=''"
+        ask _askurl_raw "$_askurl_prompt"
+        if [ -z "$_askurl_raw" ]; then
+            eval "$_askurl_var=''"
             return
         fi
-        url="$(normalize_url "$raw_url")"
-        if [ -n "$url" ]; then
-            info "Normalized: ${BOLD}${url}${RESET}"
-            eval "$var_name=\"\$url\""
+        _askurl_result="$(normalize_url "$_askurl_raw")"
+        if [ -n "$_askurl_result" ]; then
+            info "Normalized: ${BOLD}${_askurl_result}${RESET}"
+            eval "$_askurl_var=\"\$_askurl_result\""
             return
         fi
-        warn "'${raw_url}' doesn't look like a valid URL."
+        warn "'${_askurl_raw}' doesn't look like a valid URL."
         printf "  %b\n" "${DIM}Expected: hostname.example.com or https://hostname.example.com${RESET}"
-        [ -n "$examples" ] && printf "  %b\n" "${DIM}Examples: ${examples}${RESET}"
+        [ -n "$_askurl_examples" ] && printf "  %b\n" "${DIM}Examples: ${_askurl_examples}${RESET}"
     done
 }
 
