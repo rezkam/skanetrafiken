@@ -244,6 +244,8 @@ check_and_install_deps() {
     fi
     echo ""
 
+    local _skipped=false
+
     # Common tools
     install_tool "curl" "curl" "curl" "HTTP client" "https://curl.se/download.html" || true
     install_tool "jq" "jq" "jq" "JSON processor" "https://jqlang.github.io/jq/download/" || true
@@ -290,6 +292,7 @@ check_and_install_deps() {
             if [ "$_jira_installed" = "false" ]; then
                 warn "Skipping jira skill (requires go-jira CLI)."
                 INSTALL_JIRA=false
+                _skipped=true
             fi
         else
             success "jira ${DIM}(go-jira CLI)${RESET} found."
@@ -308,7 +311,7 @@ check_and_install_deps() {
         [ "$INSTALL_JIRA"    = "true" ] && { warn "  jira"; INSTALL_JIRA=false; }
         [ "$INSTALL_SONAR"   = "true" ] && { warn "  sonarqube"; INSTALL_SONAR=false; }
         [ "$INSTALL_SKANE"   = "true" ] && { warn "  skanetrafiken"; INSTALL_SKANE=false; }
-    else
+    elif [ "$_skipped" = "false" ]; then
         success "All required tools available."
     fi
 }
