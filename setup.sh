@@ -244,11 +244,9 @@ check_and_install_deps() {
     fi
     echo ""
 
-    local _missing_tools=false
-
     # Common tools
-    install_tool "curl" "curl" "curl" "HTTP client" "https://curl.se/download.html" || _missing_tools=true
-    install_tool "jq" "jq" "jq" "JSON processor" "https://jqlang.github.io/jq/download/" || _missing_tools=true
+    install_tool "curl" "curl" "curl" "HTTP client" "https://curl.se/download.html" || true
+    install_tool "jq" "jq" "jq" "JSON processor" "https://jqlang.github.io/jq/download/" || true
 
     # Skill-specific
     if [ "$INSTALL_JIRA" = "true" ]; then
@@ -290,7 +288,8 @@ check_and_install_deps() {
             fi
 
             if [ "$_jira_installed" = "false" ]; then
-                _missing_tools=true
+                warn "Skipping jira skill (requires go-jira CLI)."
+                INSTALL_JIRA=false
             fi
         else
             success "jira ${DIM}(go-jira CLI)${RESET} found."
@@ -301,11 +300,7 @@ check_and_install_deps() {
     if ! has_cmd curl || ! has_cmd jq; then
         die "curl and jq are required. Install them and re-run."
     fi
-    if [ "$_missing_tools" = "true" ]; then
-        warn "Some tools are missing. Continuing with reduced functionality."
-    else
-        success "All required tools available."
-    fi
+    success "All required tools available."
 }
 
 # ── Banner ──────────────────────────────────────────────────────────────────
@@ -862,6 +857,16 @@ main() {
     banner
     select_skills
     check_and_install_deps
+
+    # Re-check: skills may have been disabled due to missing tools
+    local remaining=0
+    [ "$INSTALL_DTRACK"  = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_JENKINS" = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_JIRA"    = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_SONAR"   = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_SKANE"   = "true" ] && remaining=$((remaining + 1))
+    [ "$remaining" -eq 0 ] && die "No skills remaining after dependency checks."
+
     select_install_path
 
     [ "$INSTALL_DTRACK"  = "true" ] && install_skill "dependency-track"
