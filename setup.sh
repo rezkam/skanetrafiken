@@ -298,9 +298,19 @@ check_and_install_deps() {
 
     echo ""
     if ! has_cmd curl || ! has_cmd jq; then
-        die "curl and jq are required. Install them and re-run."
+        local missing=""
+        has_cmd curl || missing="${missing} curl"
+        has_cmd jq   || missing="${missing} jq"
+        err "${BOLD}${missing# }${RESET} required but not available."
+        info "The following skills require${missing} and will be skipped:"
+        [ "$INSTALL_DTRACK"  = "true" ] && { warn "  dependency-track"; INSTALL_DTRACK=false; }
+        [ "$INSTALL_JENKINS" = "true" ] && { warn "  jenkins"; INSTALL_JENKINS=false; }
+        [ "$INSTALL_JIRA"    = "true" ] && { warn "  jira"; INSTALL_JIRA=false; }
+        [ "$INSTALL_SONAR"   = "true" ] && { warn "  sonarqube"; INSTALL_SONAR=false; }
+        [ "$INSTALL_SKANE"   = "true" ] && { warn "  skanetrafiken"; INSTALL_SKANE=false; }
+    else
+        success "All required tools available."
     fi
-    success "All required tools available."
 }
 
 # ── Banner ──────────────────────────────────────────────────────────────────
@@ -352,7 +362,7 @@ select_skills() {
     [ "$INSTALL_SONAR"   = "true" ] && count=$((count + 1))
     [ "$INSTALL_SKANE"   = "true" ] && count=$((count + 1))
 
-    [ "$count" -eq 0 ] && die "No skills selected."
+    [ "$count" -eq 0 ] && { warn "No skills selected. Nothing to do."; exit 0; }
     info "Selected ${count} skill(s) to install."
 }
 
@@ -425,7 +435,11 @@ configure_dtrack() {
 
     local raw_url url
     ask raw_url "Server URL"
-    [ -z "$raw_url" ] && die "URL is required."
+    if [ -z "$raw_url" ]; then
+        warn "URL is required for dependency-track. Skipping."
+        INSTALL_DTRACK=false
+        return
+    fi
     url="$(normalize_url "$raw_url")"
     info "Normalized: ${BOLD}${url}${RESET}"
 
@@ -475,13 +489,21 @@ configure_jenkins() {
 
     local raw_url url user token
     ask raw_url "Server URL"
-    [ -z "$raw_url" ] && die "URL is required."
+    if [ -z "$raw_url" ]; then
+        warn "URL is required for jenkins. Skipping."
+        INSTALL_JENKINS=false
+        return
+    fi
     url="$(normalize_url "$raw_url")"
     info "Normalized: ${BOLD}${url}${RESET}"
 
     echo ""
     ask user "Username"
-    [ -z "$user" ] && die "Username is required."
+    if [ -z "$user" ]; then
+        warn "Username is required for jenkins. Skipping."
+        INSTALL_JENKINS=false
+        return
+    fi
 
     echo ""
     printf "  %b\n" "${BOLD}How to get an API token:${RESET}"
@@ -531,7 +553,11 @@ configure_jira() {
 
     local raw_url url
     ask raw_url "Jira URL"
-    [ -z "$raw_url" ] && die "URL is required."
+    if [ -z "$raw_url" ]; then
+        warn "URL is required for jira. Skipping."
+        INSTALL_JIRA=false
+        return
+    fi
     url="$(normalize_url "$raw_url")"
     info "Normalized: ${BOLD}${url}${RESET}"
 
@@ -547,7 +573,11 @@ configure_jira() {
         printf "  %b\n\n" "${DIM}Authentication: email + API token${RESET}"
 
         ask identity "Your Atlassian email"
-        [ -z "$identity" ] && die "Email is required for Jira Cloud."
+        if [ -z "$identity" ]; then
+            warn "Email is required for Jira Cloud. Skipping jira."
+            INSTALL_JIRA=false
+            return
+        fi
 
         echo ""
         printf "  %b\n" "${BOLD}How to get an API token:${RESET}"
@@ -561,7 +591,11 @@ configure_jira() {
         printf "  %b\n\n" "${DIM}Authentication: username + Personal Access Token (PAT)${RESET}"
 
         ask identity "Your Jira username"
-        [ -z "$identity" ] && die "Username is required."
+        if [ -z "$identity" ]; then
+            warn "Username is required for Jira Server. Skipping jira."
+            INSTALL_JIRA=false
+            return
+        fi
 
         echo ""
         printf "  %b\n" "${BOLD}How to get a Personal Access Token:${RESET}"
@@ -765,7 +799,11 @@ configure_sonar() {
 
     local raw_url url
     ask raw_url "Server URL"
-    [ -z "$raw_url" ] && die "URL is required."
+    if [ -z "$raw_url" ]; then
+        warn "URL is required for sonarqube. Skipping."
+        INSTALL_SONAR=false
+        return
+    fi
     url="$(normalize_url "$raw_url")"
     info "Normalized: ${BOLD}${url}${RESET}"
 
@@ -891,7 +929,12 @@ main() {
     [ "$INSTALL_JIRA"    = "true" ] && remaining=$((remaining + 1))
     [ "$INSTALL_SONAR"   = "true" ] && remaining=$((remaining + 1))
     [ "$INSTALL_SKANE"   = "true" ] && remaining=$((remaining + 1))
-    [ "$remaining" -eq 0 ] && die "No skills remaining after dependency checks."
+    if [ "$remaining" -eq 0 ]; then
+        echo ""
+        warn "No skills remaining after dependency checks."
+        info "Install the missing tools and re-run this script."
+        exit 0
+    fi
 
     select_install_path
 
