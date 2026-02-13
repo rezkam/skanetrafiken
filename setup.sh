@@ -97,6 +97,19 @@ ask_yn() {
 
 # ── URL normalizer ──────────────────────────────────────────────────────────
 # Handles: bare domains, with/without scheme, trailing slashes, mixed case
+validate_url() {
+    local raw="$1"
+    # Strip scheme for validation
+    local host="${raw#*://}"
+    # Take only the host part (before first /)
+    host="${host%%/*}"
+    # Must contain at least one dot and only valid hostname chars
+    if ! echo "$host" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}(:[0-9]+)?$'; then
+        return 1
+    fi
+    return 0
+}
+
 normalize_url() {
     local raw="$1"
 
@@ -126,7 +139,38 @@ normalize_url() {
         path=""
     fi
 
-    echo "${scheme}${host}${path}"
+    local result="${scheme}${host}${path}"
+
+    if ! validate_url "$result"; then
+        echo ""
+        return 1
+    fi
+
+    echo "$result"
+}
+
+# Ask for a URL with validation — loops until valid or empty (to skip)
+# Usage: ask_url <var_name> <prompt> <examples>
+ask_url() {
+    local var_name="$1" prompt_text="$2" examples="$3"
+    local raw_url="" url=""
+
+    while true; do
+        ask raw_url "$prompt_text"
+        if [ -z "$raw_url" ]; then
+            eval "$var_name=''"
+            return
+        fi
+        url="$(normalize_url "$raw_url")"
+        if [ -n "$url" ]; then
+            info "Normalized: ${BOLD}${url}${RESET}"
+            eval "$var_name=\"\$url\""
+            return
+        fi
+        warn "'${raw_url}' doesn't look like a valid URL."
+        printf "  %b\n" "${DIM}Expected: hostname.example.com or https://hostname.example.com${RESET}"
+        [ -n "$examples" ] && printf "  %b\n" "${DIM}Examples: ${examples}${RESET}"
+    done
 }
 
 # ── File helpers ────────────────────────────────────────────────────────────
@@ -442,15 +486,13 @@ configure_dtrack() {
     printf "  %b\n" "${DIM}Enter the Dependency-Track server URL.${RESET}"
     printf "  %b\n\n" "${DIM}Examples: dependency-track.example.com  https://dtrack.myorg.io${RESET}"
 
-    local raw_url url
-    ask raw_url "Server URL"
-    if [ -z "$raw_url" ]; then
+    local url
+    ask_url url "Server URL" "dependency-track.example.com  https://dtrack.myorg.io"
+    if [ -z "$url" ]; then
         warn "URL is required for dependency-track. Skipping."
         INSTALL_DTRACK=false
         return
     fi
-    url="$(normalize_url "$raw_url")"
-    info "Normalized: ${BOLD}${url}${RESET}"
 
     echo ""
     printf "  %b\n" "${BOLD}How to get an API key:${RESET}"
@@ -496,15 +538,13 @@ configure_jenkins() {
     printf "  %b\n" "${DIM}Enter the Jenkins server URL.${RESET}"
     printf "  %b\n\n" "${DIM}Examples: jenkins.example.com  https://ci.myorg.io${RESET}"
 
-    local raw_url url user token
-    ask raw_url "Server URL"
-    if [ -z "$raw_url" ]; then
+    local url user token
+    ask_url url "Server URL" "jenkins.example.com  https://ci.myorg.io"
+    if [ -z "$url" ]; then
         warn "URL is required for jenkins. Skipping."
         INSTALL_JENKINS=false
         return
     fi
-    url="$(normalize_url "$raw_url")"
-    info "Normalized: ${BOLD}${url}${RESET}"
 
     echo ""
     ask user "Username"
@@ -560,15 +600,13 @@ configure_jira() {
     printf "  %b\n" "${DIM}Enter your Jira instance URL.${RESET}"
     printf "  %b\n\n" "${DIM}Examples: myorg.atlassian.net  https://jira.mycompany.com${RESET}"
 
-    local raw_url url
-    ask raw_url "Jira URL"
-    if [ -z "$raw_url" ]; then
+    local url
+    ask_url url "Jira URL" "myorg.atlassian.net  https://jira.mycompany.com"
+    if [ -z "$url" ]; then
         warn "URL is required for jira. Skipping."
         INSTALL_JIRA=false
         return
     fi
-    url="$(normalize_url "$raw_url")"
-    info "Normalized: ${BOLD}${url}${RESET}"
 
     # Detect Cloud vs Server/DC
     local is_cloud=false
@@ -806,15 +844,13 @@ configure_sonar() {
     printf "  %b\n" "${DIM}Enter the SonarQube server URL.${RESET}"
     printf "  %b\n\n" "${DIM}Examples: sonarqube.example.com  https://sonar.myorg.io${RESET}"
 
-    local raw_url url
-    ask raw_url "Server URL"
-    if [ -z "$raw_url" ]; then
+    local url
+    ask_url url "Server URL" "sonarqube.example.com  https://sonar.myorg.io"
+    if [ -z "$url" ]; then
         warn "URL is required for sonarqube. Skipping."
         INSTALL_SONAR=false
         return
     fi
-    url="$(normalize_url "$raw_url")"
-    info "Normalized: ${BOLD}${url}${RESET}"
 
     echo ""
     printf "  %b\n" "${BOLD}How to get a token:${RESET}"
