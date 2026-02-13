@@ -244,15 +244,18 @@ check_and_install_deps() {
     fi
     echo ""
 
+    local _missing_tools=false
+
     # Common tools
-    install_tool "curl" "curl" "curl" "HTTP client" "https://curl.se/download.html" || true
-    install_tool "jq" "jq" "jq" "JSON processor" "https://jqlang.github.io/jq/download/" || true
+    install_tool "curl" "curl" "curl" "HTTP client" "https://curl.se/download.html" || _missing_tools=true
+    install_tool "jq" "jq" "jq" "JSON processor" "https://jqlang.github.io/jq/download/" || _missing_tools=true
 
     # Skill-specific
     if [ "$INSTALL_JIRA" = "true" ]; then
         if ! has_cmd jira; then
             warn "${BOLD}jira${RESET} (go-jira CLI) is not installed."
 
+            local _jira_installed=false
             if [ "$PKG_MGR" = "brew" ]; then
                 local do_install
                 ask_yn do_install "Install go-jira via brew?" "y"
@@ -261,6 +264,7 @@ check_and_install_deps() {
                     if brew install go-jira; then
                         hash -r 2>/dev/null || true
                         success "go-jira installed."
+                        _jira_installed=true
                     else
                         err "Failed to install go-jira via brew."
                     fi
@@ -273,6 +277,7 @@ check_and_install_deps() {
                     if go install github.com/go-jira/jira/cmd/jira@latest; then
                         hash -r 2>/dev/null || true
                         success "go-jira installed."
+                        _jira_installed=true
                     else
                         err "Failed to install go-jira."
                     fi
@@ -283,6 +288,10 @@ check_and_install_deps() {
                 printf "    %b\n" "${DIM}Go:     go install github.com/go-jira/jira/cmd/jira@latest${RESET}"
                 printf "    %b\n" "${DIM}Binary: ${CYAN}https://github.com/go-jira/jira/releases${RESET}"
             fi
+
+            if [ "$_jira_installed" = "false" ]; then
+                _missing_tools=true
+            fi
         else
             success "jira ${DIM}(go-jira CLI)${RESET} found."
         fi
@@ -292,7 +301,11 @@ check_and_install_deps() {
     if ! has_cmd curl || ! has_cmd jq; then
         die "curl and jq are required. Install them and re-run."
     fi
-    success "All required tools available."
+    if [ "$_missing_tools" = "true" ]; then
+        warn "Some tools are missing. Continuing with reduced functionality."
+    else
+        success "All required tools available."
+    fi
 }
 
 # ── Banner ──────────────────────────────────────────────────────────────────
