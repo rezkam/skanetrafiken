@@ -316,10 +316,16 @@ check_and_install_deps() {
 # ── Banner ──────────────────────────────────────────────────────────────────
 banner() {
     printf "\n"
-    printf "  %b\n" "${BLUE}╔══════════════════════════════════════════════════════╗${RESET}"
-    printf "  %b\n" "${BLUE}║${RESET}  ${BOLD}Boring Skills Installer${RESET}                              ${BLUE}║${RESET}"
-    printf "  %b\n" "${BLUE}║${RESET}  ${DIM}dependency-track · jenkins · jira · sonarqube${RESET}        ${BLUE}║${RESET}"
-    printf "  %b\n" "${BLUE}╚══════════════════════════════════════════════════════╝${RESET}"
+    printf "  %b\n" "${BLUE} _                _             ${RESET}"
+    printf "  %b\n" "${BLUE}| |              (_)            ${RESET}"
+    printf "  %b\n" "${BLUE}| |__   ___  _ __ _ _ __   __ _ ${RESET}"
+    printf "  %b\n" "${BLUE}| '_ \\ / _ \\| '__| | '_ \\ / _\` |${RESET}"
+    printf "  %b\n" "${BLUE}| |_) | (_) | |  | | | | | (_| |${RESET}"
+    printf "  %b\n" "${BLUE}|_.__/ \\___/|_|  |_|_| |_|\\__, |${RESET}"
+    printf "  %b\n" "${BLUE}                           __/ |${RESET}"
+    printf "  %b\n" "${BLUE}                          |___/ ${RESET}"
+    printf "\n"
+    printf "  %b\n" "${DIM}dependency-track · jenkins · jira · sonarqube · skanetrafiken${RESET}"
     printf "\n"
 }
 
