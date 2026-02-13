@@ -413,7 +413,11 @@ configure_dtrack() {
     if [ -f "${cfg}/apikey" ]; then
         info "Existing config found at ${cfg}/"
         local reconf; ask_yn reconf "Reconfigure?" "n"
-        [ "$reconf" != "true" ] && { success "Kept existing config."; return; }
+        if [ "$reconf" != "true" ]; then
+            success "Kept existing config."
+            install_skill "dependency-track"
+            return
+        fi
     fi
 
     printf "  %b\n" "${DIM}Enter the Dependency-Track server URL.${RESET}"
@@ -447,6 +451,8 @@ configure_dtrack() {
 
     write_secure "${cfg}/url" "$url"
     success "Server URL saved"
+
+    install_skill "dependency-track"
 }
 
 # ── Configure: Jenkins ──────────────────────────────────────────────────────
@@ -457,7 +463,11 @@ configure_jenkins() {
     if [ -f "${cfg}/url" ] && [ -f "${cfg}/token" ]; then
         info "Existing config found at ${cfg}/"
         local reconf; ask_yn reconf "Reconfigure?" "n"
-        [ "$reconf" != "true" ] && { success "Kept existing config."; return; }
+        if [ "$reconf" != "true" ]; then
+            success "Kept existing config."
+            install_skill "jenkins"
+            return
+        fi
     fi
 
     printf "  %b\n" "${DIM}Enter the Jenkins server URL.${RESET}"
@@ -489,6 +499,8 @@ configure_jenkins() {
     write_secure "${cfg}/user" "$user"
     write_secure "${cfg}/token" "$token"
     success "Config saved to ${cfg}/{url,user,token}"
+
+    install_skill "jenkins"
 }
 
 # ── Configure: Jira ─────────────────────────────────────────────────────────
@@ -506,7 +518,11 @@ configure_jira() {
     if [ -f "${jira_d}/config.yml" ]; then
         info "Existing config found at ${jira_d}/config.yml"
         local reconf; ask_yn reconf "Reconfigure?" "n"
-        [ "$reconf" != "true" ] && { success "Kept existing config."; return; }
+        if [ "$reconf" != "true" ]; then
+            success "Kept existing config."
+            install_skill "jira"
+            return
+        fi
     fi
 
     echo ""
@@ -562,6 +578,7 @@ configure_jira() {
 
     if [ -z "$token" ]; then
         warn "No token provided. Configure go-jira manually later."
+        install_skill "jira"
         return
     fi
 
@@ -589,6 +606,7 @@ For now, you can manually configure password-source: pass or stdin.
 See: https://github.com/go-jira/jira#password-source
 EOF
         warn "Token not stored. Configure go-jira auth manually."
+        install_skill "jira"
         return
     fi
 
@@ -723,6 +741,8 @@ password-source: keyring"
             success "Default labels: ${BOLD}${manual_labels}${RESET}"
         fi
     fi
+
+    install_skill "jira"
 }
 
 # ── Configure: SonarQube ────────────────────────────────────────────────────
@@ -733,7 +753,11 @@ configure_sonar() {
     if [ -f "${cfg}/token" ]; then
         info "Existing config found at ${cfg}/"
         local reconf; ask_yn reconf "Reconfigure?" "n"
-        [ "$reconf" != "true" ] && { success "Kept existing config."; return; }
+        if [ "$reconf" != "true" ]; then
+            success "Kept existing config."
+            install_skill "sonarqube"
+            return
+        fi
     fi
 
     printf "  %b\n" "${DIM}Enter the SonarQube server URL.${RESET}"
@@ -767,6 +791,8 @@ configure_sonar() {
 
     write_secure "${cfg}/url" "$url"
     success "Server URL saved"
+
+    install_skill "sonarqube"
 }
 
 # ── Connectivity tests ──────────────────────────────────────────────────────
@@ -869,17 +895,12 @@ main() {
 
     select_install_path
 
-    [ "$INSTALL_DTRACK"  = "true" ] && install_skill "dependency-track"
-    [ "$INSTALL_JENKINS" = "true" ] && install_skill "jenkins"
-    [ "$INSTALL_JIRA"    = "true" ] && install_skill "jira"
-    [ "$INSTALL_SONAR"   = "true" ] && install_skill "sonarqube"
-    [ "$INSTALL_SKANE"   = "true" ] && install_skill "skanetrafiken"
-
+    # Each configure function links the skill at the end
     [ "$INSTALL_DTRACK"  = "true" ] && configure_dtrack
     [ "$INSTALL_JENKINS" = "true" ] && configure_jenkins
     [ "$INSTALL_JIRA"    = "true" ] && configure_jira
     [ "$INSTALL_SONAR"   = "true" ] && configure_sonar
-    # skanetrafiken needs no configuration
+    [ "$INSTALL_SKANE"   = "true" ] && install_skill "skanetrafiken"  # no config needed
 
     local run_tests
     ask_yn run_tests "Test connectivity?" "y"
