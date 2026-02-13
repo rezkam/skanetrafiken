@@ -4,7 +4,7 @@ I was bored. So I wrote some scripts to make my AI agents actually useful at the
 
 ## What's in here
 
-Skills that give AI coding agents (Claude Code, etc.) the ability to interact with real dev infrastructure through shell scripts. No SDKs, no dependencies beyond `curl` and `jq`, no magic. Each skill is a directory with a `SKILL.md` that tells the agent what it can do and a `scripts/` folder that does it.
+Skills that give AI coding agents (Claude Code, etc.) the ability to interact with real dev infrastructure through shell scripts. Each skill is a directory with a `SKILL.md` that tells the agent what it can do and a `scripts/` folder that does it.
 
 | Skill | What it does |
 |-------|-------------|
