@@ -1,7 +1,7 @@
 #!/bin/bash
 # Trigger a new build, optionally with parameters
 # Usage: jenkins-trigger.sh <job-path> [--param KEY=VALUE]...
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"
@@ -50,5 +50,18 @@ if [[ "$HTTP_CODE" == "201" || "$HTTP_CODE" == "200" ]]; then
     echo "Build triggered: ${JOB_PATH}"
     [[ ${#PARAMS[@]} -gt 0 ]] && echo "Parameters: ${PARAMS[*]}"
 else
-    echo "Failed to trigger build. HTTP ${HTTP_CODE}" >&2; exit 1
+    cat >&2 <<EOF
+ERROR: Failed to trigger build. HTTP ${HTTP_CODE}.
+
+Context: POST /job/${JOB_URL}/build for job '${JOB_PATH}'
+
+Common causes:
+  - HTTP 404: job path does not exist. Check spelling, verify with: jenkins-list-jobs.sh
+  - HTTP 403: user lacks Build permission. Check Jenkins > Manage > Security
+  - HTTP 405: job is disabled or does not support builds
+  - HTTP 409: job already has a build queued
+
+Recovery: verify the job exists with: jenkins-list-jobs.sh
+EOF
+    exit 1
 fi

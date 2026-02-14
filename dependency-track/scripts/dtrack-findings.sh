@@ -1,7 +1,7 @@
 #!/bin/bash
 # List vulnerability findings for a project
 # Usage: dtrack-findings.sh <project-uuid> [--suppressed] [--source SRC] [--cve ID] [--severity SEV]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_UUID="${1:-}"; shift 2>/dev/null || true
 
