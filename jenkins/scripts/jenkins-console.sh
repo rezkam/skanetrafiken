@@ -1,7 +1,7 @@
 #!/bin/bash
 # Get console output for a build, optionally grep for a pattern
 # Usage: jenkins-console.sh <job-path> [build-number] [grep-pattern]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"
@@ -11,9 +11,9 @@ JOB_PATH="$1"; BUILD="${2:-lastBuild}"; PATTERN="${3:-}"
 
 JOB_URL=$(echo "$JOB_PATH" | sed 's|/|/job/|g')
 
+CONSOLE=$(jenkins_get "/job/${JOB_URL}/${BUILD}/consoleText")
 if [[ -n "$PATTERN" ]]; then
-    jenkins_get "/job/${JOB_URL}/${BUILD}/consoleText" | \
-        grep -i --color=never "$PATTERN" || echo "No matches for: $PATTERN"
+    echo "$CONSOLE" | grep -i --color=never "$PATTERN" || echo "No matches for: $PATTERN"
 else
-    jenkins_get "/job/${JOB_URL}/${BUILD}/consoleText"
+    echo "$CONSOLE"
 fi

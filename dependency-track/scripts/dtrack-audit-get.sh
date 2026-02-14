@@ -1,7 +1,7 @@
 #!/bin/bash
 # Retrieve existing analysis trail for a finding
 # Usage: dtrack-audit-get.sh <project-uuid> <component-uuid> <vulnerability-uuid>
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_UUID="${1:-}"; COMPONENT_UUID="${2:-}"; VULNERABILITY_UUID="${3:-}"
 

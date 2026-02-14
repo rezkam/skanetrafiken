@@ -1,7 +1,7 @@
 #!/bin/bash
 # List or search Dependency-Track projects
 # Usage: dtrack-projects.sh [search-name] [--inactive] [--tag TAG]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 SEARCH_NAME="" ; INCLUDE_INACTIVE="" ; TAG_FILTER=""

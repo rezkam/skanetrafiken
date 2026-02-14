@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fetch security hotspots for a project or PR
 # Usage: sonarqube-hotspots.sh <project-key> [--pr N] [--branch NAME] [--status STATUS]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"

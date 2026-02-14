@@ -1,7 +1,7 @@
 #!/bin/bash
 # Get build status for a job
 # Usage: jenkins-build-status.sh <job-path> [build-number]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"
@@ -12,7 +12,8 @@ JOB_PATH="$1"; BUILD="${2:-lastBuild}"
 JOB_URL=$(echo "$JOB_PATH" | sed 's|/|/job/|g')
 QUERY="tree=number,result,building,duration,timestamp,displayName,changeSets%5Bitems%5Bmsg,id,author%5BfullName%5D%5D%5D"
 
-jenkins_get "/job/${JOB_URL}/${BUILD}/api/json?${QUERY}" | jq -r '
+RESULT=$(jenkins_get "/job/${JOB_URL}/${BUILD}/api/json?${QUERY}")
+echo "$RESULT" | jq -r '
     "Build #\(.number)",
     "Status: \(if .building then "BUILDING" else .result end)",
     "Duration: \((.duration / 1000 | floor))s",

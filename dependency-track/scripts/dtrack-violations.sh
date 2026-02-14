@@ -1,7 +1,7 @@
 #!/bin/bash
 # List policy violations for a project
 # Usage: dtrack-violations.sh <project-uuid> [--suppressed]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_UUID="${1:-}"; SUPPRESSED="false"
 [[ "$2" == "--suppressed" ]] && SUPPRESSED="true"

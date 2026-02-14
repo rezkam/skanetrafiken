@@ -1,7 +1,7 @@
 #!/bin/bash
 # List/search SonarQube projects
 # Usage: sonarqube-projects.sh [search-query] [--limit N]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"

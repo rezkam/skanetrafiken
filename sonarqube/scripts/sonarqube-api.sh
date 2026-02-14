@@ -1,7 +1,7 @@
 #!/bin/bash
 # Raw SonarQube API access
 # Usage: sonarqube-api.sh <endpoint> [curl-options...]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"

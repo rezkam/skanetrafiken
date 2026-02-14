@@ -1,7 +1,7 @@
 #!/bin/bash
 # List jobs/pipelines, optionally within a folder
 # Usage: jenkins-list-jobs.sh [folder-path] [--depth N]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"
@@ -23,7 +23,8 @@ for ((i=1; i<DEPTH; i++)); do
     TREE="jobs[name,url,color,lastBuild[number,result,timestamp],${TREE}]"
 done
 
-jenkins_get "${ENDPOINT}?tree=${TREE}" | jq '[
+RESULT=$(jenkins_get "${ENDPOINT}?tree=${TREE}")
+echo "$RESULT" | jq '[
     .. | objects | select(has("name") and has("color")) | {
         name, url, status: .color,
         lastBuild: (if .lastBuild then {

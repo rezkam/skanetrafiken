@@ -1,7 +1,7 @@
 #!/bin/bash
 # Lookup project by name (and optionally version)
 # Usage: dtrack-project-lookup.sh <name> [version]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # URL-encode a string

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Check quality gate status for a project, branch, or PR
 # Usage: sonarqube-quality-gate.sh <project-key> [--pr N] [--branch NAME]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"

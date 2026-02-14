@@ -18,7 +18,7 @@
 #   sonarqube-transition.sh AY1234abcXYZ falsepositive --comment "Not reachable in production"
 #   sonarqube-transition.sh AY1234abcXYZ resolve
 
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"
