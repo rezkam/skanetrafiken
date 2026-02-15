@@ -1,7 +1,7 @@
 #!/bin/bash
 # List components (dependencies) for a project
 # Usage: dtrack-components.sh <project-uuid> [--page N] [--search NAME]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # URL-encode a string

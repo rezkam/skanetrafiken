@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fetch SonarQube issues for a project or PR
 # Usage: sonarqube-issues.sh <project-key> [pr-number] [--status S] [--severity S] [--type T] [--branch B] [--limit N]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"

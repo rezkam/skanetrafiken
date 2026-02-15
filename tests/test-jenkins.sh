@@ -130,7 +130,7 @@ if [ -d "$REFS_DIR" ]; then
         fi
     done
 else
-    skip "No references/ directory"
+    pass "No references/ directory (not required)"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -164,11 +164,11 @@ else
     pass "jenkins _api.sh: jenkins_post does not use -f (callers check HTTP code)"
 fi
 
-# Verify jenkins_get still uses -f (it should — callers don't check status)
-if grep -A1 '^jenkins_get' "$JENKINS_SCRIPTS/_api.sh" | grep -q 'curl.*-[a-z]*f'; then
-    pass "jenkins _api.sh: jenkins_get uses -f (fail on error)"
+# jenkins_get must NOT use -f: it captures HTTP status and returns structured errors
+if sed -n '/^jenkins_get/,/^}/p' "$JENKINS_SCRIPTS/_api.sh" | grep -q 'curl.*-[a-z]*f'; then
+    fail "jenkins _api.sh: jenkins_get uses -f (bypasses structured error messages)"
 else
-    fail "jenkins _api.sh: jenkins_get should use -f"
+    pass "jenkins _api.sh: jenkins_get does not use -f (returns structured errors)"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════

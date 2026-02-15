@@ -1,7 +1,7 @@
 #!/bin/bash
 # Trigger a metrics refresh for a project or the entire portfolio
 # Usage: dtrack-metrics-refresh.sh [project-uuid]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_UUID="${1:-}"
 

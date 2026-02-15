@@ -1,7 +1,7 @@
 #!/bin/bash
 # Upload a BOM (SBOM) to a project
 # Usage: dtrack-bom-upload.sh <project-uuid> <bom-file> [--auto-create]
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 

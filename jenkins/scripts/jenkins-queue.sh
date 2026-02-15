@@ -1,7 +1,7 @@
 #!/bin/bash
 # Show the Jenkins build queue
 # Usage: jenkins-queue.sh
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_config.sh"
 source "$SCRIPT_DIR/_api.sh"

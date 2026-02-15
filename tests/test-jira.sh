@@ -178,8 +178,24 @@ header "Jira: Error message quality"
 # Every error message should contain: what went wrong + how to fix it
 # We test by checking error messages contain actionable guidance
 
+# ── Mock environment for argument validation tests ──────────────────────────
+# go-jira may not be installed on CI/dev machines. Create a minimal stub so
+# scripts can pass _config.sh and reach their OWN argument validation code.
+# The stub jira binary does nothing — it only needs to exist in PATH.
+_JIRA_MOCK_DIR=$(mktemp -d)
+_JIRA_MOCK_HOME=$(mktemp -d)
+mkdir -p "$_JIRA_MOCK_HOME/.jira.d"
+printf '%s\n' "endpoint: https://mock.atlassian.net" > "$_JIRA_MOCK_HOME/.jira.d/config.yml"
+printf '#!/bin/bash\nexit 1\n' > "$_JIRA_MOCK_DIR/jira"
+chmod +x "$_JIRA_MOCK_DIR/jira"
+
+jira_run_expect_fail() {
+    run_expect_fail env HOME="$_JIRA_MOCK_HOME" PATH="$_JIRA_MOCK_DIR:$PATH" "$@"
+}
+# ────────────────────────────────────────────────────────────────────────────
+
 # -- jira-create.sh: missing --type
-run_expect_fail "$JIRA_SCRIPTS/jira-create.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-create.sh"
 if [ $CAPTURED_RC -ne 0 ]; then
     pass "jira-create.sh: exits non-zero with no args"
 else
@@ -189,111 +205,114 @@ assert_err_contains "jira-create.sh no-args: mentions --type" "type"
 assert_err_contains "jira-create.sh no-args: shows example" "example\|Example"
 
 # -- jira-create.sh: missing --summary
-run_expect_fail "$JIRA_SCRIPTS/jira-create.sh" --type Bug
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-create.sh" --type Bug
 assert_err_contains "jira-create.sh no-summary: mentions --summary" "summary"
 assert_err_contains "jira-create.sh no-summary: shows example" "example\|Example"
 
 # -- jira-view.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-view.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-view.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-view.sh: exits non-zero with no args"; else fail "jira-view.sh: should exit non-zero"; fi
 assert_err_contains "jira-view.sh no-args: mentions issue key" "issue.key\|issue-key\|PROJ-123"
 
 # -- jira-comment.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-comment.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-comment.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-comment.sh: exits non-zero with no args"; else fail "jira-comment.sh: should exit non-zero"; fi
 assert_err_contains "jira-comment.sh no-args: shows usage" "Usage\|usage"
 
 # -- jira-comment.sh: missing comment text
-run_expect_fail "$JIRA_SCRIPTS/jira-comment.sh" PROJ-123
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-comment.sh" PROJ-123
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-comment.sh: exits non-zero with only key"; else fail "jira-comment.sh: should require comment text"; fi
 
 # -- jira-transition.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-transition.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-transition.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-transition.sh: exits non-zero with no args"; else fail "jira-transition.sh: should exit non-zero"; fi
 assert_err_contains "jira-transition.sh no-args: explains transitions vs statuses" "transition\|Transition"
 assert_err_contains "jira-transition.sh no-args: suggests --list" "list"
 
 # -- jira-assign.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-assign.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-assign.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-assign.sh: exits non-zero with no args"; else fail "jira-assign.sh: should exit non-zero"; fi
 assert_err_contains "jira-assign.sh no-args: mentions --me" "me"
 assert_err_contains "jira-assign.sh no-args: mentions --unassign" "unassign"
 
 # -- jira-labels.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-labels.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-labels.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-labels.sh: exits non-zero with no args"; else fail "jira-labels.sh: should exit non-zero"; fi
 assert_err_contains "jira-labels.sh no-args: mentions set/add/remove" "set.*add.*remove\|set\|add\|remove"
 
 # -- jira-labels.sh: missing labels (has key + action but no labels)
-run_expect_fail "$JIRA_SCRIPTS/jira-labels.sh" PROJ-123 set
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-labels.sh" PROJ-123 set
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-labels.sh: exits non-zero with no labels"; else fail "jira-labels.sh: should require label args"; fi
 assert_err_contains "jira-labels.sh no-labels: shows example" "example\|Example\|label"
 
 # -- jira-labels.sh: invalid action
-run_expect_fail "$JIRA_SCRIPTS/jira-labels.sh" PROJ-123 replace label1
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-labels.sh" PROJ-123 replace label1
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-labels.sh: exits non-zero with bad action"; else fail "jira-labels.sh: should reject invalid action"; fi
 assert_err_contains "jira-labels.sh bad-action: lists valid actions" "set.*add.*remove"
 
 # -- jira-update.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-update.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-update.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-update.sh: exits non-zero with no args"; else fail "jira-update.sh: should exit non-zero"; fi
 assert_err_contains "jira-update.sh no-args: lists available options" "summary\|description\|priority"
 
 # -- jira-update.sh: no fields provided
-run_expect_fail "$JIRA_SCRIPTS/jira-update.sh" PROJ-123
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-update.sh" PROJ-123
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-update.sh: exits non-zero with no fields"; else fail "jira-update.sh: should require at least one field"; fi
 assert_err_contains "jira-update.sh no-fields: mentions raw API fallback" "jira-api\|raw API\|REST"
 
 # -- jira-update.sh: unknown option
-run_expect_fail "$JIRA_SCRIPTS/jira-update.sh" PROJ-123 --bogus "value"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-update.sh" PROJ-123 --bogus "value"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-update.sh: exits non-zero with unknown option"; else fail "jira-update.sh: should reject unknown options"; fi
 
 # -- jira-search.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-search.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-search.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-search.sh: exits non-zero with no args"; else fail "jira-search.sh: should exit non-zero"; fi
 assert_err_contains "jira-search.sh no-args: suggests jira-list for advanced" "jira-list\|JQL\|structured"
 
 # -- jira-api.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-api.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-api.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-api.sh: exits non-zero with no args"; else fail "jira-api.sh: should exit non-zero"; fi
 assert_err_contains "jira-api.sh no-args: lists HTTP methods" "GET.*POST\|GET, POST"
 assert_err_contains "jira-api.sh no-args: shows endpoint example" "/rest/api"
 
 # -- jira-api.sh: invalid method
-run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" BOGUS /rest/api/3/myself
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" BOGUS /rest/api/3/myself
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-api.sh: exits non-zero with bad method"; else fail "jira-api.sh: should reject invalid HTTP method"; fi
 assert_err_contains "jira-api.sh bad-method: lists valid methods" "GET.*POST.*PUT.*DELETE"
 
 # -- jira-api.sh: endpoint without leading /
-run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" GET "rest/api/3/myself"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" GET "rest/api/3/myself"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-api.sh: exits non-zero when endpoint lacks /"; else fail "jira-api.sh: should require leading /"; fi
 assert_err_contains "jira-api.sh bad-endpoint: explains the error" "must start with\|start with '/'"
 
 # -- jira-api.sh: curl flags rejected (regression: -d and --data caused go-jira errors)
-run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" PUT /rest/api/3/issue/X -d '{"fields":{}}'
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" PUT /rest/api/3/issue/X -d '{"fields":{}}'
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-api.sh: exits non-zero with -d flag"; else fail "jira-api.sh: should reject -d flag"; fi
 assert_err_contains "jira-api.sh -d flag: explains it's a curl flag" "curl flag"
 assert_err_contains "jira-api.sh -d flag: shows correct positional usage" "3rd positional\|positional argument"
 
-run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" PUT /rest/api/3/issue/X --data '{"fields":{}}'
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" PUT /rest/api/3/issue/X --data '{"fields":{}}'
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-api.sh: exits non-zero with --data flag"; else fail "jira-api.sh: should reject --data flag"; fi
 assert_err_contains "jira-api.sh --data flag: explains it's a curl flag" "curl flag"
 
-run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" PUT /rest/api/3/issue/X --json '{"fields":{}}'
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" PUT /rest/api/3/issue/X --json '{"fields":{}}'
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-api.sh: exits non-zero with --json flag"; else fail "jira-api.sh: should reject --json flag"; fi
 
-run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" GET /rest/api/3/myself -H 'Accept: application/json'
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-api.sh" GET /rest/api/3/myself -H 'Accept: application/json'
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-api.sh: exits non-zero with -H flag"; else fail "jira-api.sh: should reject -H flag"; fi
 
 # -- jira-meta.sh: no args
-run_expect_fail "$JIRA_SCRIPTS/jira-meta.sh"
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-meta.sh"
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-meta.sh: exits non-zero with no args"; else fail "jira-meta.sh: should exit non-zero"; fi
 assert_err_contains "jira-meta.sh no-args: lists all actions" "types.*transitions.*statuses\|types\|transitions\|statuses"
 
 # -- jira-meta.sh: transitions without issue key
-run_expect_fail "$JIRA_SCRIPTS/jira-meta.sh" transitions
+jira_run_expect_fail "$JIRA_SCRIPTS/jira-meta.sh" transitions
 if [ $CAPTURED_RC -ne 0 ]; then pass "jira-meta.sh transitions: exits non-zero without key"; else fail "jira-meta.sh transitions: should require issue key"; fi
 assert_err_contains "jira-meta.sh transitions: explains what transitions are" "transition\|workflow\|current state"
+
+# ── Clean up mock environment ───────────────────────────────────────────────
+rm -rf "$_JIRA_MOCK_DIR" "$_JIRA_MOCK_HOME"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 header "Jira: Issue key extraction (bug: grep double-match)"

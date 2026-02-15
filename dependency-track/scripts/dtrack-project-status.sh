@@ -1,7 +1,7 @@
 #!/bin/bash
 # Get project details and current vulnerability metrics
 # Usage: dtrack-project-status.sh <project-uuid>
-set -e
+set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_UUID="${1:-}"
 
