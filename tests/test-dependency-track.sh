@@ -84,7 +84,7 @@ header "Dependency-Track: Argument validation"
 
 MOCK_TOKEN=$(mktemp); echo "fake" > "$MOCK_TOKEN"
 
-for script in dtrack-api dtrack-findings dtrack-audit dtrack-audit-get dtrack-components dtrack-services dtrack-violations dtrack-project-status dtrack-projects dtrack-project-lookup dtrack-vulnerability dtrack-bom-upload dtrack-metrics-refresh; do
+for script in dtrack-api dtrack-findings dtrack-audit dtrack-audit-get dtrack-components dtrack-services dtrack-violations dtrack-project-status dtrack-projects dtrack-project-lookup dtrack-vulnerability dtrack-bom-upload; do
     SCRIPT_FILE="$DT_SCRIPTS/${script}.sh"
     [ -f "$SCRIPT_FILE" ] || continue
 
@@ -93,15 +93,31 @@ for script in dtrack-api dtrack-findings dtrack-audit dtrack-audit-get dtrack-co
     if [ $CAPTURED_RC -ne 0 ]; then
         pass "${script}.sh: exits non-zero without required args"
     else
-        skip "${script}.sh: exits 0 without args (may be valid)"
+        fail "${script}.sh: exits 0 without required args"
     fi
 
     if [ -n "$CAPTURED_ERR" ] && echo "$CAPTURED_ERR" | grep -qi 'usage\|error\|required'; then
         pass "${script}.sh: provides usage/error message"
     else
-        skip "${script}.sh: no error message on missing args"
+        fail "${script}.sh: no error message on missing args"
     fi
 done
+
+# dtrack-metrics-refresh.sh: valid no-arg behavior (refreshes portfolio metrics).
+# It should NOT be in the "must fail" loop — calling without args triggers a portfolio
+# refresh, which is its intended default mode.
+run_expect_fail env DTRACK_URL="http://fake" DTRACK_API_KEY_FILE="$MOCK_TOKEN" \
+    bash "$DT_SCRIPTS/dtrack-metrics-refresh.sh"
+if [ $CAPTURED_RC -eq 0 ]; then
+    pass "dtrack-metrics-refresh.sh: exits 0 without args (portfolio refresh mode)"
+else
+    fail "dtrack-metrics-refresh.sh: unexpected failure without args (rc=${CAPTURED_RC})"
+fi
+if echo "$CAPTURED_ERR" | grep -qi "portfolio.*refresh\|refresh.*portfolio"; then
+    pass "dtrack-metrics-refresh.sh: outputs portfolio refresh message"
+else
+    fail "dtrack-metrics-refresh.sh: missing portfolio refresh message"
+fi
 
 rm -f "$MOCK_TOKEN"
 

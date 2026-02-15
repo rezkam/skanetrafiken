@@ -130,7 +130,7 @@ if [ -d "$REFS_DIR" ]; then
         fi
     done
 else
-    skip "No references/ directory"
+    pass "No references/ directory (not required)"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
