@@ -10,6 +10,8 @@ set -eo pipefail
 #
 # All functions follow redirects (-L) and carry auth automatically.
 # Transient failures (connection refused, timeout) are retried automatically.
+# All curl calls use -g (--globoff) to prevent curl from interpreting [ ] { }
+# in URLs as glob patterns — Jenkins tree queries use these characters heavily.
 
 _CURL_CONNECT_TIMEOUT="${CURL_CONNECT_TIMEOUT:-10}"
 _CURL_MAX_TIME="${CURL_MAX_TIME:-30}"
@@ -44,7 +46,7 @@ jenkins_get() {
     local _url="${JENKINS_URL}$1"; shift
     local _tmpfile _code _body
     _tmpfile=$(mktemp)
-    _code=$(_retry_curl -sL \
+    _code=$(_retry_curl -g -sL \
         --connect-timeout "$_CURL_CONNECT_TIMEOUT" --max-time "$_CURL_MAX_TIME" \
         -w "%{http_code}" -o "$_tmpfile" \
         -u "${JENKINS_USER}:${JENKINS_TOKEN}" "$_url" "$@") || _code="000"
@@ -73,7 +75,7 @@ EOF
 # POST request, returns HTTP status code. Body is discarded.
 # Does NOT use -f: callers check the returned status code themselves.
 jenkins_post() {
-    _retry_curl -sL \
+    _retry_curl -g -sL \
         --connect-timeout "$_CURL_CONNECT_TIMEOUT" --max-time "$_CURL_MAX_TIME" \
         -o /dev/null -w "%{http_code}" -X POST \
         -u "${JENKINS_USER}:${JENKINS_TOKEN}" "${JENKINS_URL}$1" "${@:2}"
@@ -81,7 +83,7 @@ jenkins_post() {
 
 # Raw curl with auth pre-filled. Caller controls all other flags.
 jenkins_raw() {
-    _retry_curl -L \
+    _retry_curl -g -L \
         --connect-timeout "$_CURL_CONNECT_TIMEOUT" --max-time "$_CURL_MAX_TIME" \
         -u "${JENKINS_USER}:${JENKINS_TOKEN}" "$@"
 }

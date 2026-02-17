@@ -48,7 +48,7 @@ fi
 
 if [[ "$HTTP_CODE" == "201" || "$HTTP_CODE" == "200" ]]; then
     echo "Build triggered: ${JOB_PATH}"
-    [[ ${#PARAMS[@]} -gt 0 ]] && echo "Parameters: ${PARAMS[*]}"
+    if [[ ${#PARAMS[@]} -gt 0 ]]; then echo "Parameters: ${PARAMS[*]}"; fi
 else
     cat >&2 <<EOF
 ERROR: Failed to trigger build. HTTP ${HTTP_CODE}.

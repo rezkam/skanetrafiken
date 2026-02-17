@@ -225,6 +225,55 @@ else
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
+header "Jenkins: trigger exit code without params (regression)"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Regression: [[ ${#PARAMS[@]} -gt 0 ]] && echo "Parameters: ..." was the last
+# command in the success branch. When no params were passed, [[ ]] was false,
+# && short-circuited, and the expression returned exit 1. Since it was the last
+# command, the script exited 1 despite successfully triggering the build.
+# Fix: use if/then/fi instead of && to avoid leaking the exit code.
+
+# Static check: no bare [[ ... ]] && pattern in the success path
+if grep -q '\[\[.*PARAMS.*\]\] && echo' "$JENKINS_SCRIPTS/jenkins-trigger.sh"; then
+    fail "jenkins-trigger.sh: uses [[ PARAMS ]] && echo (leaks exit 1 when no params)"
+else
+    pass "jenkins-trigger.sh: does not use [[ PARAMS ]] && echo (exit code safe)"
+fi
+
+# Functional test: mock curl, trigger without params, verify exit 0
+MOCK_DIR=$(mktemp -d)
+export MOCK_CURL_LOG="${MOCK_DIR}/curl_args.log"
+
+cat > "${MOCK_DIR}/curl" <<'MOCKEOF'
+#!/bin/bash
+printf '%s\n' "$@" > "$MOCK_CURL_LOG"
+# jenkins_post uses -o /dev/null -w "%{http_code}", output goes to stdout
+printf "201"
+MOCKEOF
+chmod +x "${MOCK_DIR}/curl"
+
+TRIGGER_OUT=$(env PATH="${MOCK_DIR}:$PATH" \
+    JENKINS_URL="http://mock" JENKINS_USER="x" JENKINS_TOKEN="fake" CURL_RETRIES=0 \
+    bash "$JENKINS_SCRIPTS/jenkins-trigger.sh" "test-org/test-job" 2>&1)
+TRIGGER_RC=$?
+
+if [ $TRIGGER_RC -eq 0 ]; then
+    pass "jenkins-trigger.sh: exits 0 on successful trigger without params (mock test)"
+else
+    fail "jenkins-trigger.sh: exits $TRIGGER_RC on successful trigger without params (mock test)"
+fi
+
+if echo "$TRIGGER_OUT" | grep -q 'Build triggered'; then
+    pass "jenkins-trigger.sh: prints success message (mock test)"
+else
+    fail "jenkins-trigger.sh: missing success message (mock test)"
+fi
+
+rm -rf "$MOCK_DIR"
+unset MOCK_CURL_LOG
+
+# ═══════════════════════════════════════════════════════════════════════════════
 header "Jenkins: set -e removed from jenkins-test-failures.sh (regression)"
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -241,6 +290,113 @@ if grep -q 'jenkins_get.*|| true' "$JENKINS_SCRIPTS/jenkins-test-failures.sh"; t
 else
     fail "jenkins-test-failures.sh: should use || true after jenkins_get"
 fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+header "Jenkins: curl --globoff for URL safety (regression)"
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Regression: curl interprets [ ] { } in URLs as glob patterns and fails with
+# exit code 3 (URL malformed), which _api.sh reports as HTTP 000. Jenkins tree
+# queries use these characters heavily: tree=jobs[name,url,lastBuild[number]].
+# Adding -g (--globoff) to all curl calls prevents this.
+
+# Static checks: verify each API function passes -g to curl
+for func in jenkins_get jenkins_post jenkins_raw; do
+    func_body=$(sed -n "/^${func}()/,/^}/p" "$JENKINS_SCRIPTS/_api.sh")
+    if echo "$func_body" | grep -qE '\-g\b|--globoff'; then
+        pass "_api.sh ${func}: uses --globoff (-g)"
+    else
+        fail "_api.sh ${func}: missing --globoff (-g) — curl will choke on brackets in tree queries"
+    fi
+done
+
+# Functional test: mock curl to verify -g is actually passed for bracket URLs
+# Creates a mock curl that logs its args, then runs jenkins-list-jobs.sh
+# (which has unencoded brackets in the tree parameter) and verifies -g was passed.
+MOCK_DIR=$(mktemp -d)
+export MOCK_CURL_LOG="${MOCK_DIR}/curl_args.log"
+
+cat > "${MOCK_DIR}/curl" <<'MOCKEOF'
+#!/bin/bash
+# Mock curl: log args and return a valid JSON response
+printf '%s\n' "$@" > "$MOCK_CURL_LOG"
+prev=""
+for arg in "$@"; do
+    [ "$prev" = "-o" ] && echo '{"jobs":[]}' > "$arg"
+    prev="$arg"
+done
+printf "200"
+MOCKEOF
+chmod +x "${MOCK_DIR}/curl"
+
+# Run jenkins-list-jobs.sh with mock curl (has unencoded tree=jobs[name,...])
+if env PATH="${MOCK_DIR}:$PATH" \
+    JENKINS_URL="http://mock" JENKINS_USER="x" JENKINS_TOKEN="fake" CURL_RETRIES=0 \
+    bash "$JENKINS_SCRIPTS/jenkins-list-jobs.sh" "test-folder" >/dev/null 2>&1; then
+
+    if grep -qE '^-g$|^-g[a-zA-Z]' "$MOCK_CURL_LOG" 2>/dev/null; then
+        pass "jenkins-list-jobs.sh: curl receives -g for bracket URLs (mock test)"
+    else
+        fail "jenkins-list-jobs.sh: curl not called with -g (mock test)"
+    fi
+else
+    fail "jenkins-list-jobs.sh: failed with mock curl (bracket URL likely broke curl)"
+fi
+
+# Run jenkins-queue.sh with mock curl (has unencoded tree=items[id,...,task[name,url]])
+cat > "${MOCK_DIR}/curl" <<'MOCKEOF'
+#!/bin/bash
+printf '%s\n' "$@" > "$MOCK_CURL_LOG"
+prev=""
+for arg in "$@"; do
+    [ "$prev" = "-o" ] && echo '{"items":[]}' > "$arg"
+    prev="$arg"
+done
+printf "200"
+MOCKEOF
+chmod +x "${MOCK_DIR}/curl"
+
+if env PATH="${MOCK_DIR}:$PATH" \
+    JENKINS_URL="http://mock" JENKINS_USER="x" JENKINS_TOKEN="fake" CURL_RETRIES=0 \
+    bash "$JENKINS_SCRIPTS/jenkins-queue.sh" >/dev/null 2>&1; then
+
+    if grep -qE '^-g$|^-g[a-zA-Z]' "$MOCK_CURL_LOG" 2>/dev/null; then
+        pass "jenkins-queue.sh: curl receives -g for bracket URLs (mock test)"
+    else
+        fail "jenkins-queue.sh: curl not called with -g (mock test)"
+    fi
+else
+    fail "jenkins-queue.sh: failed with mock curl (bracket URL likely broke curl)"
+fi
+
+# Run jenkins-build-history.sh with mock curl (has unencoded tree=builds[...]{0,N})
+cat > "${MOCK_DIR}/curl" <<'MOCKEOF'
+#!/bin/bash
+printf '%s\n' "$@" > "$MOCK_CURL_LOG"
+prev=""
+for arg in "$@"; do
+    [ "$prev" = "-o" ] && echo '{"builds":[]}' > "$arg"
+    prev="$arg"
+done
+printf "200"
+MOCKEOF
+chmod +x "${MOCK_DIR}/curl"
+
+if env PATH="${MOCK_DIR}:$PATH" \
+    JENKINS_URL="http://mock" JENKINS_USER="x" JENKINS_TOKEN="fake" CURL_RETRIES=0 \
+    bash "$JENKINS_SCRIPTS/jenkins-build-history.sh" "test-folder" >/dev/null 2>&1; then
+
+    if grep -qE '^-g$|^-g[a-zA-Z]' "$MOCK_CURL_LOG" 2>/dev/null; then
+        pass "jenkins-build-history.sh: curl receives -g for bracket URLs (mock test)"
+    else
+        fail "jenkins-build-history.sh: curl not called with -g (mock test)"
+    fi
+else
+    fail "jenkins-build-history.sh: failed with mock curl (bracket URL likely broke curl)"
+fi
+
+rm -rf "$MOCK_DIR"
+unset MOCK_CURL_LOG
 
 # ═══════════════════════════════════════════════════════════════════════════════
 header "Results: Jenkins"
