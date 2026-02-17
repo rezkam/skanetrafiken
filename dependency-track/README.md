@@ -35,6 +35,14 @@ Dependency-Track tells you which of your 500 dependencies have known CVEs. This 
 | `dtrack-api.sh` | HTTP helper and raw API access |
 | `_config.sh` | Configuration loader |
 
+## Installation
+
+```bash
+npx skills add rezkam/boring-but-good --skill dependency-track
+```
+
+Or install manually — run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+
 ## Setup
 
-Needs a Dependency-Track API key with `VIEW_PORTFOLIO`, `VIEW_VULNERABILITY`, `VULNERABILITY_ANALYSIS`, and `VIEW_POLICY_VIOLATION` permissions. Run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+Needs a Dependency-Track API key with `VIEW_PORTFOLIO`, `VIEW_VULNERABILITY`, `VULNERABILITY_ANALYSIS`, and `VIEW_POLICY_VIOLATION` permissions.

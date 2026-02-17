@@ -13,8 +13,29 @@ Skills that give AI coding agents (Claude Code, etc.) the ability to interact wi
 | [**sonarqube**](sonarqube/) | Fetch code quality issues, coverage metrics, security hotspots, quality gate status. |
 | [**dependency-track**](dependency-track/) | Query SCA findings, audit vulnerabilities, check project health, review policy violations. |
 | [**skanetrafiken**](skanetrafiken/) | Plan public transport journeys in southern Sweden with real-time delays. |
+| [**java-21-to-25-migration**](java-21-to-25-migration/) | Migrate a Java project from JDK 21 to JDK 25 with a phased plan covering all breaking changes. |
 
 ## Getting started
+
+### Quick install (any agent)
+
+Install skills to any [supported agent](https://www.npmjs.com/package/skills) (Claude Code, Cursor, Codex, etc.):
+
+```bash
+# Install all skills
+npx skills add rezkam/boring-but-good
+
+# Install a specific skill
+npx skills add rezkam/boring-but-good --skill jira
+
+# Install to a specific agent
+npx skills add rezkam/boring-but-good --skill jenkins -a claude-code
+
+# List available skills without installing
+npx skills add rezkam/boring-but-good --list
+```
+
+### Manual install
 
 ```bash
 git clone https://github.com/rezkam/boring-but-good.git

@@ -30,6 +30,14 @@ SonarQube knows what's wrong with your code. Your agent should too. Instead of o
 | `_api.sh` | HTTP helper with bearer and token auth |
 | `_config.sh` | Configuration loader |
 
+## Installation
+
+```bash
+npx skills add rezkam/boring-but-good --skill sonarqube
+```
+
+Or install manually — run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+
 ## Setup
 
-Needs a SonarQube user token. Supports both token-as-login (default) and bearer auth. Run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+Needs a SonarQube user token. Supports both token-as-login (default) and bearer auth.

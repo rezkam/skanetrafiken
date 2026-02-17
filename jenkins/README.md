@@ -37,6 +37,14 @@ Build broke? Instead of clicking through Jenkins UI, the agent can pull the stat
 | `_api.sh` | HTTP helper (all curl calls go through here) |
 | `_config.sh` | Configuration loader |
 
+## Installation
+
+```bash
+npx skills add rezkam/boring-but-good --skill jenkins
+```
+
+Or install manually — run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+
 ## Setup
 
-Needs a Jenkins API token. Run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+Needs a Jenkins API token.

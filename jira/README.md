@@ -33,6 +33,14 @@ An agent that can read code but can't file a ticket is only half useful. This sk
 | `jira-api.sh` | Raw REST API access via go-jira |
 | `_config.sh` | Configuration loader |
 
+## Installation
+
+```bash
+npx skills add rezkam/boring-but-good --skill jira
+```
+
+Or install manually — run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+
 ## Setup
 
-Uses [go-jira](https://github.com/go-jira/jira) CLI with OS keychain for credentials. Run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+Uses [go-jira](https://github.com/go-jira/jira) CLI with OS keychain for credentials.

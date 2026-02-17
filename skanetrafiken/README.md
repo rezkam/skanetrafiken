@@ -6,20 +6,11 @@ An [Agent Skills](https://agentskills.io) compatible skill for AI agents.
 
 ## Installation
 
-### Clawdhub
-
 ```bash
-npx clawdhub@latest install rezkam/boring-but-good/skanetrafiken
-# or: pnpm dlx clawdhub@latest install rezkam/boring-but-good/skanetrafiken
-# or: bunx clawdhub@latest install rezkam/boring-but-good/skanetrafiken
+npx skills add rezkam/boring-but-good --skill skanetrafiken
 ```
 
-### Claude Code
-
-```bash
-git clone https://github.com/rezkam/boring-but-good.git
-cp -r boring-but-good/skanetrafiken ~/.claude/skills/skanetrafiken
-```
+Or install manually — run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
 
 ## Requirements
 

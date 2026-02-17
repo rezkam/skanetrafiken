@@ -44,21 +44,10 @@ A **54-item master checklist** (organized by category: language, libraries, secu
 
 ## Installation
 
-No configuration needed — this is a self-contained prompt with no scripts or secrets.
-
-The same `SKILL.md` file works with different agent harnesses; only the install location differs:
-
-| Harness | Installed as | Location |
-|---------|-------------|----------|
-| **Claude Code** | Agent | `~/.claude/agents/java-21-to-25-migration.md` |
-| **Pi** | Skill | `~/.pi/agent/skills/java-21-to-25-migration/` |
-
-Run `./setup.sh` from the repo root for automatic installation, or symlink manually:
-
 ```bash
-# Claude Code (as agent)
-ln -s "$(pwd)/java-21-to-25-migration/SKILL.md" ~/.claude/agents/java-21-to-25-migration.md
-
-# Pi (as skill — symlink the directory)
-ln -s "$(pwd)/java-21-to-25-migration" ~/.pi/agent/skills/java-21-to-25-migration
+npx skills add rezkam/boring-but-good --skill java-21-to-25-migration
 ```
+
+Or install manually — run `./setup.sh` from the repo root or see [SKILL.md](SKILL.md) for manual setup.
+
+No configuration needed — this is a self-contained prompt with no scripts or secrets.
