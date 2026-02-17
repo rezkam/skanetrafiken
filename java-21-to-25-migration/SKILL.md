@@ -706,22 +706,4 @@ Delete old flags only needed for the upgrade window. If you moved off legacy mec
 11. **Come back to the MASTER CHECKLIST** after every phase. Verify nothing was missed.
 12. **Use preview features only in leaf modules or internal tooling first** if adopting them.
 
----
 
-# REFERENCE LINKS
-
-- [Road to 25 playlist (all 6 videos)](https://www.youtube.com/playlist?list=PLX8CzqL3ArzXJ2_0FIGleUisXuUm4AESE)
-- [OpenJDK: JEPs since JDK 21](https://openjdk.org/projects/jdk/25/jeps-since-jdk-21) — canonical diff
-- [Inside.java: How to Upgrade to Java 25](https://inside.java/2025/08/24/roadto25-upgrade/)
-- [Inside.java: AOT Computation](https://inside.java/2025/08/28/roadto25-aot/)
-- [Inside.java: Language Features](https://inside.java/2025/08/31/roadto25-java-language/)
-- [Inside.java: Performance & Runtime](https://inside.java/2025/09/05/roadto25-performance/)
-- [Inside.java: Security Changes](https://inside.java/2025/09/07/roadto25-security/)
-- [Inside.java: API Additions](https://inside.java/2025/09/09/roadto25-api/)
-- [nipafx: Upgrading From Java 21 To 25](https://nipafx.dev/road-to-25-upgrade/)
-- [Oracle JDK 25 Migration Guide](https://docs.oracle.com/en/java/javase/25/migrate/getting-started.html)
-- [Oracle JDK 25 Release Notes](https://www.oracle.com/java/technologies/javase/25-relnote-issues.html)
-- [JDK 25.0.2 Release Notes](https://jdk.java.net/25/release-notes)
-- [Spring Boot System Requirements](https://docs.spring.io/spring-boot/system-requirements.html)
-- [Gradle Java 25 Support Issue](https://github.com/gradle/gradle/issues/35111)
-- [Maven Compiler Plugin Java 25 Issue](https://github.com/apache/maven-compiler-plugin/issues/986)
