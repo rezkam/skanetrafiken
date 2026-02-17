@@ -553,18 +553,25 @@ install_java_migration() {
             current_target=$(readlink "$agent_dest" 2>/dev/null || true)
             if [ "$current_target" = "$agent_src" ]; then
                 success "Already linked ${BOLD}${name}${RESET} → ${agent_dest} ${DIM}(agent)${RESET}"
+                return 0
             else
                 rm -f "$agent_dest"
-                ln -s "$agent_src" "$agent_dest"
-                success "Linked ${BOLD}${name}${RESET} → ${agent_dest} ${DIM}(agent)${RESET}"
             fi
         elif [ -f "$agent_dest" ]; then
+            local overwrite
+            ask_yn overwrite "${name}.md already exists at ${agent_dest}. Replace with symlink?" "y"
+            if [ "$overwrite" != "true" ]; then
+                warn "Skipping ${name} agent link (kept existing file)"
+                return 0
+            fi
             rm -f "$agent_dest"
-            ln -s "$agent_src" "$agent_dest"
+        fi
+
+        if ln -s "$agent_src" "$agent_dest"; then
             success "Linked ${BOLD}${name}${RESET} → ${agent_dest} ${DIM}(agent)${RESET}"
         else
-            ln -s "$agent_src" "$agent_dest"
-            success "Linked ${BOLD}${name}${RESET} → ${agent_dest} ${DIM}(agent)${RESET}"
+            warn "Failed to create symlink ${name} → ${agent_dest}"
+            return 1
         fi
     fi
 
