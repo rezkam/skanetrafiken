@@ -372,69 +372,125 @@ banner() {
     printf "  %b\n" "${BLUE}                           __/ |${RESET}"
     printf "  %b\n" "${BLUE}                          |___/ ${RESET}"
     printf "\n"
-    printf "  %b\n" "${DIM}dependency-track · jenkins · jira · sonarqube · skanetrafiken${RESET}"
+    printf "  %b\n" "${DIM}dependency-track · jenkins · jira · sonarqube · skanetrafiken · java-21-to-25-migration${RESET}"
     printf "\n"
 }
 
 # ── Skill selection ─────────────────────────────────────────────────────────
-INSTALL_DTRACK=false; INSTALL_JENKINS=false; INSTALL_JIRA=false; INSTALL_SONAR=false; INSTALL_SKANE=false
+INSTALL_DTRACK=false; INSTALL_JENKINS=false; INSTALL_JIRA=false; INSTALL_SONAR=false; INSTALL_SKANE=false; INSTALL_JAVA_MIG=false
 INSTALL_DIR=""
+AGENT_HARNESS="claude-code"
 
 select_skills() {
     header "Select Skills to Install"
     printf "  %b\n\n" "${DIM}Enter numbers separated by spaces, or 'all':${RESET}"
-    printf "    %b  dependency-track  %b\n" "${BOLD}1${RESET}" "${DIM}— SCA vulnerability management & audit${RESET}"
-    printf "    %b  jenkins           %b\n" "${BOLD}2${RESET}" "${DIM}— CI build status, tests, console, triggers${RESET}"
-    printf "    %b  jira              %b\n" "${BOLD}3${RESET}" "${DIM}— Issue tracking: create, transition, search${RESET}"
-    printf "    %b  sonarqube         %b\n" "${BOLD}4${RESET}" "${DIM}— Code quality, coverage, security hotspots${RESET}"
-    printf "    %b  skanetrafiken     %b\n" "${BOLD}5${RESET}" "${DIM}— Public transport in Skåne (no config needed)${RESET}"
+    printf "    %b  dependency-track        %b\n" "${BOLD}1${RESET}" "${DIM}— SCA vulnerability management & audit${RESET}"
+    printf "    %b  jenkins                 %b\n" "${BOLD}2${RESET}" "${DIM}— CI build status, tests, console, triggers${RESET}"
+    printf "    %b  jira                    %b\n" "${BOLD}3${RESET}" "${DIM}— Issue tracking: create, transition, search${RESET}"
+    printf "    %b  sonarqube               %b\n" "${BOLD}4${RESET}" "${DIM}— Code quality, coverage, security hotspots${RESET}"
+    printf "    %b  skanetrafiken           %b\n" "${BOLD}5${RESET}" "${DIM}— Public transport in Skåne (no config needed)${RESET}"
+    printf "    %b  java-21-to-25-migration %b\n" "${BOLD}6${RESET}" "${DIM}— JDK 21→25 migration (no config needed)${RESET}"
     echo ""
 
     local selection
     ask selection "Skills to install" "all"
 
     if [ "$selection" = "all" ]; then
-        INSTALL_DTRACK=true; INSTALL_JENKINS=true; INSTALL_JIRA=true; INSTALL_SONAR=true; INSTALL_SKANE=true
+        INSTALL_DTRACK=true; INSTALL_JENKINS=true; INSTALL_JIRA=true; INSTALL_SONAR=true; INSTALL_SKANE=true; INSTALL_JAVA_MIG=true
     else
         for s in $selection; do
             case "$s" in
-                1) INSTALL_DTRACK=true  ;;
-                2) INSTALL_JENKINS=true ;;
-                3) INSTALL_JIRA=true    ;;
-                4) INSTALL_SONAR=true   ;;
-                5) INSTALL_SKANE=true   ;;
+                1) INSTALL_DTRACK=true   ;;
+                2) INSTALL_JENKINS=true  ;;
+                3) INSTALL_JIRA=true     ;;
+                4) INSTALL_SONAR=true    ;;
+                5) INSTALL_SKANE=true    ;;
+                6) INSTALL_JAVA_MIG=true ;;
                 *) warn "Unknown selection: $s (skipping)" ;;
             esac
         done
     fi
 
     local count=0
-    [ "$INSTALL_DTRACK"  = "true" ] && count=$((count + 1))
-    [ "$INSTALL_JENKINS" = "true" ] && count=$((count + 1))
-    [ "$INSTALL_JIRA"    = "true" ] && count=$((count + 1))
-    [ "$INSTALL_SONAR"   = "true" ] && count=$((count + 1))
-    [ "$INSTALL_SKANE"   = "true" ] && count=$((count + 1))
+    [ "$INSTALL_DTRACK"   = "true" ] && count=$((count + 1))
+    [ "$INSTALL_JENKINS"  = "true" ] && count=$((count + 1))
+    [ "$INSTALL_JIRA"     = "true" ] && count=$((count + 1))
+    [ "$INSTALL_SONAR"    = "true" ] && count=$((count + 1))
+    [ "$INSTALL_SKANE"    = "true" ] && count=$((count + 1))
+    [ "$INSTALL_JAVA_MIG" = "true" ] && count=$((count + 1))
 
     [ "$count" -eq 0 ] && { warn "No skills selected. Nothing to do."; exit 0; }
     info "Selected ${count} skill(s) to install."
 }
 
-# ── Install path ────────────────────────────────────────────────────────────
-select_install_path() {
-    header "Installation Path"
-    info "Skills will be copied where your agent can discover them."
-    info "For Claude Code the default is ~/.claude/skills/"
+# ── Agent harness detection & selection ──────────────────────────────────────
+detect_and_select_harness() {
+    header "Agent Harness"
+
+    local has_claude=false has_pi=false
+    [ -d "$HOME/.claude" ] && has_claude=true
+    [ -d "$HOME/.pi" ]    && has_pi=true
+
+    if [ "$has_claude" = "true" ] && [ "$has_pi" = "true" ]; then
+        info "Detected both ${BOLD}Claude Code${RESET} (~/.claude) and ${BOLD}Pi${RESET} (~/.pi)."
+        echo ""
+        printf "    %b  claude-code  %b\n" "${BOLD}1${RESET}" "${DIM}— java-21-to-25-migration as agent, rest as skills${RESET}"
+        printf "    %b  pi           %b\n" "${BOLD}2${RESET}" "${DIM}— everything as skills${RESET}"
+        printf "    %b  both         %b\n" "${BOLD}3${RESET}" "${DIM}— java-21-to-25-migration as agent + skill, rest as skills${RESET}"
+        echo ""
+        local choice
+        ask choice "Agent harness" "1"
+        case "$choice" in
+            1|claude-code|claude) AGENT_HARNESS="claude-code" ;;
+            2|pi)                 AGENT_HARNESS="pi" ;;
+            3|both)               AGENT_HARNESS="both" ;;
+            *)                    warn "Unknown: ${choice}, defaulting to claude-code"; AGENT_HARNESS="claude-code" ;;
+        esac
+    elif [ "$has_claude" = "true" ]; then
+        AGENT_HARNESS="claude-code"
+        info "Detected ${BOLD}Claude Code${RESET} (~/.claude). Installing for Claude Code."
+    elif [ "$has_pi" = "true" ]; then
+        AGENT_HARNESS="pi"
+        info "Detected ${BOLD}Pi${RESET} (~/.pi). Installing for Pi."
+    else
+        AGENT_HARNESS=""
+        warn "No supported harness detected."
+        info "Expected ${BOLD}Claude Code${RESET} (~/.claude) or ${BOLD}Pi${RESET} (~/.pi)."
+        info "Skipping installation."
+        return 1
+    fi
+
     echo ""
-    ask INSTALL_DIR "Install path" "$HOME/.claude/skills"
-    mkdir -p "$INSTALL_DIR"
-    success "Install directory: ${INSTALL_DIR}"
+    info "Skills are ${BOLD}symlinked${RESET} from this repo — ${CYAN}git pull${RESET} to get new versions."
 }
 
-# ── Copy skill files ────────────────────────────────────────────────────────
-install_skill() {
-    local name="$1"
+# ── Install path ────────────────────────────────────────────────────────────
+select_install_path() {
+    case "$AGENT_HARNESS" in
+        claude-code)
+            INSTALL_DIR="$HOME/.claude/skills"
+            AGENT_DIR="$HOME/.claude/agents"
+            mkdir -p "$INSTALL_DIR" "$AGENT_DIR"
+            ;;
+        pi)
+            INSTALL_DIR="$HOME/.pi/agent/skills"
+            mkdir -p "$INSTALL_DIR"
+            ;;
+        both)
+            INSTALL_DIR="$HOME/.claude/skills"
+            AGENT_DIR="$HOME/.claude/agents"
+            PI_SKILLS_DIR="$HOME/.pi/agent/skills"
+            mkdir -p "$INSTALL_DIR" "$AGENT_DIR" "$PI_SKILLS_DIR"
+            ;;
+    esac
+}
+
+# ── Symlink a skill directory to a target dir ──────────────────────────────
+# Usage: _link_skill_to <name> <target_dir>
+_link_skill_to() {
+    local name="$1" target_dir="$2"
     local src="${SKILLS_SRC}/${name}"
-    local dest="${INSTALL_DIR}/${name}"
+    local dest="${target_dir}/${name}"
 
     if [ ! -d "$src" ]; then
         warn "Source not found: ${src} — skipping"
@@ -442,11 +498,10 @@ install_skill() {
     fi
 
     if [ -L "$dest" ]; then
-        # Existing symlink — check if it points to the right place
         local current_target
         current_target=$(readlink "$dest" 2>/dev/null || true)
         if [ "$current_target" = "$src" ]; then
-            success "Already linked ${BOLD}${name}${RESET} → ${src}"
+            success "Already linked ${BOLD}${name}${RESET} → ${dest}"
             return 0
         fi
         local overwrite
@@ -462,10 +517,63 @@ install_skill() {
 
     ln -s "$src" "$dest"
     if [ $? -ne 0 ]; then
-        warn "Failed to create symlink ${name} → ${src}"
+        warn "Failed to create symlink ${name} → ${dest}"
         return 1
     fi
-    success "Linked ${BOLD}${name}${RESET} → ${src}"
+    success "Linked ${BOLD}${name}${RESET} → ${dest}"
+}
+
+# ── Install a skill to the correct dir(s) based on harness ─────────────────
+install_skill() {
+    local name="$1"
+    _link_skill_to "$name" "$INSTALL_DIR"
+    # In 'both' mode, also link to Pi's skills directory
+    if [ "$AGENT_HARNESS" = "both" ]; then
+        _link_skill_to "$name" "$PI_SKILLS_DIR"
+    fi
+}
+
+# ── Install java-21-to-25-migration based on harness ───────────────────────
+install_java_migration() {
+    local name="java-21-to-25-migration"
+    local src="${SKILLS_SRC}/${name}"
+
+    if [ ! -d "$src" ]; then
+        warn "Source not found: ${src} — skipping"
+        return 1
+    fi
+
+    # For Claude Code: link SKILL.md → ~/.claude/agents/<name>.md (agent format)
+    if [ "$AGENT_HARNESS" = "claude-code" ] || [ "$AGENT_HARNESS" = "both" ]; then
+        local agent_dest="${AGENT_DIR}/${name}.md"
+        local agent_src="${src}/SKILL.md"
+
+        if [ -L "$agent_dest" ]; then
+            local current_target
+            current_target=$(readlink "$agent_dest" 2>/dev/null || true)
+            if [ "$current_target" = "$agent_src" ]; then
+                success "Already linked ${BOLD}${name}${RESET} → ${agent_dest} ${DIM}(agent)${RESET}"
+            else
+                rm -f "$agent_dest"
+                ln -s "$agent_src" "$agent_dest"
+                success "Linked ${BOLD}${name}${RESET} → ${agent_dest} ${DIM}(agent)${RESET}"
+            fi
+        elif [ -f "$agent_dest" ]; then
+            rm -f "$agent_dest"
+            ln -s "$agent_src" "$agent_dest"
+            success "Linked ${BOLD}${name}${RESET} → ${agent_dest} ${DIM}(agent)${RESET}"
+        else
+            ln -s "$agent_src" "$agent_dest"
+            success "Linked ${BOLD}${name}${RESET} → ${agent_dest} ${DIM}(agent)${RESET}"
+        fi
+    fi
+
+    # For Pi (or both): link directory → Pi's skills path
+    if [ "$AGENT_HARNESS" = "pi" ]; then
+        _link_skill_to "$name" "$INSTALL_DIR"
+    elif [ "$AGENT_HARNESS" = "both" ]; then
+        _link_skill_to "$name" "$PI_SKILLS_DIR"
+    fi
 }
 
 # ── Configure: Dependency-Track ─────────────────────────────────────────────
@@ -927,24 +1035,64 @@ test_connectivity() {
 # ── Summary ─────────────────────────────────────────────────────────────────
 print_summary() {
     header "Done"
-    printf "  %b\n" "${BOLD}Installed:${RESET}"
-    [ "$INSTALL_DTRACK"  = "true" ] && printf "    %b dependency-track → %s/dependency-track/\n" "${GREEN}✓${RESET}" "$INSTALL_DIR"
-    [ "$INSTALL_JENKINS" = "true" ] && printf "    %b jenkins          → %s/jenkins/\n" "${GREEN}✓${RESET}" "$INSTALL_DIR"
-    [ "$INSTALL_JIRA"    = "true" ] && printf "    %b jira             → %s/jira/\n" "${GREEN}✓${RESET}" "$INSTALL_DIR"
-    [ "$INSTALL_SONAR"   = "true" ] && printf "    %b sonarqube        → %s/sonarqube/\n" "${GREEN}✓${RESET}" "$INSTALL_DIR"
-    [ "$INSTALL_SKANE"   = "true" ] && printf "    %b skanetrafiken    → %s/skanetrafiken/\n" "${GREEN}✓${RESET}" "$INSTALL_DIR"
+
+    printf "  %b  %b\n" "${BOLD}Harness:${RESET}" "${CYAN}${AGENT_HARNESS}${RESET}"
     echo ""
-    printf "  %b\n" "${BOLD}Configs:${RESET}"
-    [ "$INSTALL_DTRACK"  = "true" ] && printf "    %b\n" "${DIM}~/.boring/dependency-track/{url,apikey}${RESET}"
-    [ "$INSTALL_JENKINS" = "true" ] && printf "    %b\n" "${DIM}~/.boring/jenkins/{url,user,token}${RESET}"
-    [ "$INSTALL_JIRA"    = "true" ] && printf "    %b\n" "${DIM}~/.jira.d/config.yml + ~/.boring/jira/{defaults,default-labels}${RESET}"
-    [ "$INSTALL_SONAR"   = "true" ] && printf "    %b\n" "${DIM}~/.boring/sonarqube/{url,token}${RESET}"
+
+    printf "  %b\n" "${BOLD}Installed (symlinked):${RESET}"
+
+    # Print regular skills for the primary INSTALL_DIR
+    _summary_skill() { printf "    %b %-26s → %s/%s/\n" "${GREEN}✓${RESET}" "$1" "$INSTALL_DIR" "$1"; }
+    [ "$INSTALL_DTRACK"   = "true" ] && _summary_skill "dependency-track"
+    [ "$INSTALL_JENKINS"  = "true" ] && _summary_skill "jenkins"
+    [ "$INSTALL_JIRA"     = "true" ] && _summary_skill "jira"
+    [ "$INSTALL_SONAR"    = "true" ] && _summary_skill "sonarqube"
+    [ "$INSTALL_SKANE"    = "true" ] && _summary_skill "skanetrafiken"
+
+    # In 'both' mode, also show Pi copies
+    if [ "$AGENT_HARNESS" = "both" ]; then
+        _summary_pi() { printf "    %b %-26s → %s/%s/\n" "${GREEN}✓${RESET}" "$1" "$PI_SKILLS_DIR" "$1"; }
+        [ "$INSTALL_DTRACK"   = "true" ] && _summary_pi "dependency-track"
+        [ "$INSTALL_JENKINS"  = "true" ] && _summary_pi "jenkins"
+        [ "$INSTALL_JIRA"     = "true" ] && _summary_pi "jira"
+        [ "$INSTALL_SONAR"    = "true" ] && _summary_pi "sonarqube"
+        [ "$INSTALL_SKANE"    = "true" ] && _summary_pi "skanetrafiken"
+    fi
+
+    # java-21-to-25-migration: agent and/or skill
+    if [ "$INSTALL_JAVA_MIG" = "true" ]; then
+        if [ "$AGENT_HARNESS" = "claude-code" ] || [ "$AGENT_HARNESS" = "both" ]; then
+            printf "    %b %-26s → %s/java-21-to-25-migration.md %b\n" "${GREEN}✓${RESET}" "java-21-to-25-migration" "$AGENT_DIR" "${DIM}(agent)${RESET}"
+        fi
+        if [ "$AGENT_HARNESS" = "pi" ]; then
+            printf "    %b %-26s → %s/java-21-to-25-migration/ %b\n" "${GREEN}✓${RESET}" "java-21-to-25-migration" "$INSTALL_DIR" "${DIM}(skill)${RESET}"
+        elif [ "$AGENT_HARNESS" = "both" ]; then
+            printf "    %b %-26s → %s/java-21-to-25-migration/ %b\n" "${GREEN}✓${RESET}" "java-21-to-25-migration" "$PI_SKILLS_DIR" "${DIM}(skill)${RESET}"
+        fi
+    fi
     echo ""
-    printf "  %b\n" "${DIM}Skills are symlinked from the repo — pull updates to get new versions.${RESET}"
-    printf "  %b\n" "${DIM}Re-run this script any time to reconfigure.${RESET}"
+
+    local has_configs=false
+    [ "$INSTALL_DTRACK"  = "true" ] && has_configs=true
+    [ "$INSTALL_JENKINS" = "true" ] && has_configs=true
+    [ "$INSTALL_JIRA"    = "true" ] && has_configs=true
+    [ "$INSTALL_SONAR"   = "true" ] && has_configs=true
+    if [ "$has_configs" = "true" ]; then
+        printf "  %b\n" "${BOLD}Configs:${RESET}"
+        [ "$INSTALL_DTRACK"  = "true" ] && printf "    %b\n" "${DIM}~/.boring/dependency-track/{url,apikey}${RESET}"
+        [ "$INSTALL_JENKINS" = "true" ] && printf "    %b\n" "${DIM}~/.boring/jenkins/{url,user,token}${RESET}"
+        [ "$INSTALL_JIRA"    = "true" ] && printf "    %b\n" "${DIM}~/.jira.d/config.yml + ~/.boring/jira/{defaults,default-labels}${RESET}"
+        [ "$INSTALL_SONAR"   = "true" ] && printf "    %b\n" "${DIM}~/.boring/sonarqube/{url,token}${RESET}"
+        echo ""
+    fi
+
+    printf "  %b\n" "${BOLD}Updating:${RESET}"
+    printf "    %b\n" "${DIM}All skills are symlinked from this repo.${RESET}"
+    printf "    %b\n" "${DIM}Run ${CYAN}git pull${DIM} in this repo to get new versions — no reinstall needed.${RESET}"
+    printf "    %b\n" "${DIM}Re-run this script any time to reconfigure or add skills.${RESET}"
     echo ""
     printf "  %b  %b\n" "${YELLOW}⚠${RESET}" "${BOLD}Restart your coding agent to load the new skills.${RESET}"
-    printf "    %b\n\n" "${DIM}Claude Code: start a new session  •  Other agents: reload/restart the session${RESET}"
+    printf "    %b\n\n" "${DIM}Claude Code: start a new session  •  Pi: start a new session${RESET}"
 }
 
 # ── Help ────────────────────────────────────────────────────────────────────
@@ -952,7 +1100,10 @@ show_help() {
     echo "Usage: $0 [--help]"
     echo ""
     echo "Interactive installer for Boring Skills."
-    echo "Sets up: dependency-track, jenkins, jira, sonarqube"
+    echo "Sets up: dependency-track, jenkins, jira, sonarqube, skanetrafiken, java-21-to-25-migration"
+    echo ""
+    echo "Supports Claude Code and Pi agent harnesses."
+    echo "Skills are symlinked — git pull updates them automatically."
     echo ""
     echo "Run without arguments for the interactive setup wizard."
     echo "Works with bash 3.2+ and zsh 5+."
@@ -965,15 +1116,19 @@ main() {
 
     banner
     select_skills
+    if ! detect_and_select_harness; then
+        exit 0
+    fi
     check_and_install_deps
 
     # Re-check: skills may have been disabled due to missing tools
     local remaining=0
-    [ "$INSTALL_DTRACK"  = "true" ] && remaining=$((remaining + 1))
-    [ "$INSTALL_JENKINS" = "true" ] && remaining=$((remaining + 1))
-    [ "$INSTALL_JIRA"    = "true" ] && remaining=$((remaining + 1))
-    [ "$INSTALL_SONAR"   = "true" ] && remaining=$((remaining + 1))
-    [ "$INSTALL_SKANE"   = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_DTRACK"   = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_JENKINS"  = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_JIRA"     = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_SONAR"    = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_SKANE"    = "true" ] && remaining=$((remaining + 1))
+    [ "$INSTALL_JAVA_MIG" = "true" ] && remaining=$((remaining + 1))
     if [ "$remaining" -eq 0 ]; then
         echo ""
         warn "No skills remaining after dependency checks."
@@ -984,15 +1139,24 @@ main() {
     select_install_path
 
     # Each configure function links the skill at the end
-    [ "$INSTALL_DTRACK"  = "true" ] && configure_dtrack
-    [ "$INSTALL_JENKINS" = "true" ] && configure_jenkins
-    [ "$INSTALL_JIRA"    = "true" ] && configure_jira
-    [ "$INSTALL_SONAR"   = "true" ] && configure_sonar
-    [ "$INSTALL_SKANE"   = "true" ] && install_skill "skanetrafiken"  # no config needed
+    [ "$INSTALL_DTRACK"   = "true" ] && configure_dtrack
+    [ "$INSTALL_JENKINS"  = "true" ] && configure_jenkins
+    [ "$INSTALL_JIRA"     = "true" ] && configure_jira
+    [ "$INSTALL_SONAR"    = "true" ] && configure_sonar
+    [ "$INSTALL_SKANE"    = "true" ] && install_skill "skanetrafiken"      # no config needed
+    [ "$INSTALL_JAVA_MIG" = "true" ] && install_java_migration             # harness-aware install
 
-    local run_tests
-    ask_yn run_tests "Test connectivity?" "y"
-    [ "$run_tests" = "true" ] && test_connectivity
+    # Only offer connectivity tests if a service with remote config was installed
+    local has_remote=false
+    [ "$INSTALL_DTRACK"  = "true" ] && has_remote=true
+    [ "$INSTALL_JENKINS" = "true" ] && has_remote=true
+    [ "$INSTALL_JIRA"    = "true" ] && has_remote=true
+    [ "$INSTALL_SONAR"   = "true" ] && has_remote=true
+    if [ "$has_remote" = "true" ]; then
+        local run_tests
+        ask_yn run_tests "Test connectivity?" "y"
+        [ "$run_tests" = "true" ] && test_connectivity
+    fi
 
     print_summary
 }

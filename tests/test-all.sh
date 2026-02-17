@@ -53,6 +53,7 @@ run_suite() {
 
 # ── Run all suites ──────────────────────────────────────────────────────────
 
+run_suite "Setup"             "$SCRIPT_DIR/test-setup.sh"
 run_suite "Jira"              "$SCRIPT_DIR/test-jira.sh"
 run_suite "Jenkins"           "$SCRIPT_DIR/test-jenkins.sh"
 run_suite "SonarQube"         "$SCRIPT_DIR/test-sonarqube.sh"
