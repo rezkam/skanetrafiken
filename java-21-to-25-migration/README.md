@@ -8,7 +8,9 @@ Jumping four JDK versions means dozens of JEPs, removed APIs, behavioral changes
 
 ## What it covers
 
-- **Build & infrastructure** — Maven/Gradle config, Dockerfiles, CI pipelines, `.java-version` files
+- **Build & infrastructure** — Maven/Gradle config, `.java-version` files
+- **Dockerfiles & containers** — Update all base images (Temurin, Corretto, etc.) to JDK 25, remove obsolete JVM flags from entrypoints
+- **CI pipelines** — Update all CI stages and configs (GitHub Actions, Jenkinsfile, GitLab CI, Makefiles) to build and test with JDK 25
 - **Breaking changes & removals** — SecurityManager (permanently disabled), `sun.misc.Unsafe` memory-access warnings, removed Thread/ThreadGroup methods, COMPAT locale data, withdrawn String Templates, removed CLI flags
 - **Behavioral changes** — `CompletableFuture` async now always uses common pool, `-Xlint:none` no longer implies `-nowarn`, virtual threads no longer pin on `synchronized`
 - **Dependency compatibility** — Spring Boot, Gradle, Maven Compiler Plugin, Lombok, ByteBuddy, ASM, and other common libraries
