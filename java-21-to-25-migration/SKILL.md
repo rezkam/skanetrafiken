@@ -199,3 +199,76 @@ Delete old flags only needed for the upgrade window. If you moved off legacy mec
 10. **Document every change** in the final summary.
 11. **Come back to the MASTER CHECKLIST** after every phase. Verify nothing was missed.
 12. **Use preview features only in leaf modules or internal tooling first** if adopting them.
+13. **Never guess library versions** — always verify against authoritative sources (see Rule 13 detail below).
+14. **Reproducible builds are non-negotiable** — every version pin must be explicit and verifiable (see Rule 14 detail below).
+15. **JDK image for builds and tests, JRE image for runtime** — never use a JRE image as a build or test environment (see Rule 15 detail below).
+
+---
+
+## Rule 13 — Never Guess Library Versions
+
+**Do not rely on your internal knowledge of what the "latest" or "compatible" version of a library is.** Training data has a cutoff, Maven Central indexing lags behind actual releases, and libraries release patch versions continuously. A version you believe is the latest may be months out of date, and a version you believe exists may not be published yet (or may have been retracted).
+
+**The mandatory verification process for every dependency version change:**
+
+1. **Check the library's GitHub releases page** — this is the ground truth. Release notes tell you exactly what JDK versions are supported, what was fixed, and whether the release is stable or pre-release.
+   ```
+   https://github.com/{org}/{repo}/releases
+   ```
+
+2. **Verify the artifact exists on Maven Central** — the search index lags, so query the repository directly:
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}" \
+     "https://repo1.maven.org/maven2/{group-path}/{artifact}/{version}/{artifact}-{version}.jar"
+   # 200 = exists, 404 = does not exist
+   ```
+
+3. **Cross-check the changelog for JDK 25 compatibility** — look explicitly for "JDK 25 support", "Java 25", or "class file version 69". Do not assume compatibility from version numbers alone.
+
+4. **Use the latest stable version that explicitly declares JDK 25 support** — not the latest pre-release, not the assumed latest. Pre-release versions (alpha, beta, RC, snapshot) are forbidden in production builds unless there is no stable alternative and the risk is explicitly documented.
+
+**Real example from this migration**: Lombok `1.18.42` existed in the local Maven cache and in pom.xml, but was not indexed in the Maven Central search API. Direct repository verification (`curl https://repo1.maven.org/...`) confirmed it exists and is on Central. The GitHub changelog confirmed `1.18.40` added JDK 25 support and `1.18.42` fixed a JDK 25 javadoc parsing bug — making it the correct version. Without checking both sources, we would have either downgraded to `1.18.38` (wrong — no JDK 25 support) or trusted the search API gap (misleading).
+
+---
+
+## Rule 14 — Reproducible Builds Are Non-Negotiable
+
+Every artifact produced by the build system must be byte-for-byte reproducible given the same source code and tool versions. This means:
+
+- **Pin every version explicitly** — no floating tags (`:latest`), no open ranges (`[1.0,)`), no `SNAPSHOT` dependencies in production builds.
+- **JDK version**: pin to patch level (e.g., `25.0.2`) in all Dockerfiles, CI configs, and `.java-version`. A `FROM image:25` that silently pulls `25.0.3` tomorrow is a reproducibility failure.
+- **Docker base images**: always use a versioned tag. `:latest` is banned. When a new patch ships, update the tag as an explicit, reviewable commit.
+- **Maven plugins**: pin all plugin versions in `<pluginManagement>` or directly in the plugin declaration. Never rely on Maven's default plugin resolution — it will silently use different versions across environments.
+- **The same image for the same role everywhere**: CI, local dev, and remote builds must use the same Docker base image for compilation. If CI compiles with a specific JDK 25 image pinned to a patch version, local Docker builds must use the exact same image and tag. Version drift between environments is a source of "works on my machine" failures that are extremely hard to debug.
+- **Record the verification**: After confirming a version via GitHub releases and Maven Central, note the release date and what JDK support was added. This creates an audit trail for future migrations.
+
+---
+
+## Rule 15 — JDK Image for Builds and Tests, JRE Image for Runtime
+
+The choice of Docker base image must match the role of the container:
+
+| Role | Image type | Why |
+|------|-----------|-----|
+| Compile source code | JDK buildenv | Needs `javac`, annotation processors, `javadoc` |
+| Run unit/integration tests | JDK buildenv | Needs `javac` for test compilation, JVM agent attachment (JaCoCo, Mockito byte-buddy), `jcmd` |
+| CI pipeline container | JDK buildenv | Runs Maven/Gradle, which compiles and tests |
+| Production runtime | JRE runtime | Smallest attack surface, no compiler, no dev tools |
+| Development server | JRE runtime | Should mirror production — if it needs the JDK, that's a red flag |
+
+**The JRE runtime image is for running a pre-built JAR and nothing else.** Its job is:
+```dockerfile
+# Use your JRE 25 base image — public (eclipse-temurin:25-jre)
+# or your organisation's hardened/certified equivalent, pinned to a patch version
+FROM <your-jre25-image>:<patch-version>
+COPY target/app.jar /app/app.jar
+CMD ["java", "-jar", "/app/app.jar"]
+```
+
+**If your runtime Dockerfile needs `apt install`, `mvn`, schema init scripts, or any build tool — stop.** That logic does not belong in the runtime image. Move it to:
+- Compose `healthcheck` + `depends_on` for service ordering
+- A separate init container
+- The CI pipeline or Makefile (the correct place for schema init and build steps)
+- The application itself (e.g., Flyway/Liquibase for schema migrations)
+
+**Never use a JRE runtime image as a CI build container.** JaCoCo, Mockito's byte-buddy, and annotation processors all require a full JDK. Tests will fail or produce incomplete coverage with a JRE-only image.
