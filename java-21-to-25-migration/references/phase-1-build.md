@@ -48,8 +48,8 @@ Gradle wrapper must be ≥ 8.10 for JDK 25 compilation support.
 
 ### Framework compatibility
 
-- **Spring Boot 4.0.2** officially states: "requires at least Java 17 and is compatible with versions up to and including Java 25" (see [Spring Boot System Requirements](https://docs.spring.io/spring-boot/system-requirements.html))
-- Spring Boot applications can be converted to Native Image using GraalVM 25+
+- **Spring Boot**: check the [Spring Boot System Requirements](https://docs.spring.io/spring-boot/system-requirements.html) page for the version you are using — compatibility declarations change with each minor release. Do not rely on this document for a specific version claim; verify directly.
+- Spring Boot applications can be converted to Native Image using GraalVM — check the GraalVM release notes for JDK 25 support status.
 
 ## 1.2 Dockerfiles
 
@@ -59,10 +59,10 @@ Gradle wrapper must be ≥ 8.10 for JDK 25 compilation support.
 
 | Role | Image type | Rationale |
 |------|-----------|-----------|
-| CI pipeline, Maven/Gradle build | **JDK buildenv** | Needs `javac`, annotation processors (Lombok, MapStruct), Maven/Gradle |
-| Running tests (unit, integration) | **JDK buildenv** | JaCoCo agent, Mockito byte-buddy, and test compilation all require a full JDK |
-| Production runtime | **JRE runtime** (`-nonroot` variant preferred) | Minimal attack surface — runs a pre-built JAR, needs nothing else |
-| Development server (local docker-compose) | **JRE runtime** | Should mirror production; if it needs the JDK, that is a design problem |
+| CI pipeline, Maven/Gradle build | **JDK image (full JDK)** | Needs `javac`, annotation processors (Lombok, MapStruct), Maven/Gradle |
+| Running tests (unit, integration) | **JDK image (full JDK)** | JaCoCo agent, Mockito byte-buddy, and test compilation all require a full JDK |
+| Production runtime | **JRE image** | Minimal attack surface — runs a pre-built JAR, needs nothing else |
+| Development server (local docker-compose) | **JRE image** | Should mirror production; if it needs the JDK, that is a design problem |
 
 **The JRE runtime image does exactly one thing**: `java -jar app.jar`. It must not contain build tools, package managers, schema init scripts, or anything that is not needed to run the pre-built application JAR. If you find yourself adding `apt install`, `mvn`, or shell scripts that talk to databases to a runtime Dockerfile — stop and move that logic to the CI pipeline, Makefile, or Compose setup where it belongs.
 
@@ -76,7 +76,7 @@ FROM eclipse-temurin:25-jdk          # public Docker Hub
 # or your organisation's equivalent, pinned to a patch version:
 # FROM <internal-registry>/<jdk25-build-image>:<patch-version>
 
-# Production runtime — use JRE, prefer a non-root variant if available
+# Production runtime — use JRE
 FROM eclipse-temurin:25-jre          # public Docker Hub
 # or your organisation's equivalent:
 # FROM <internal-registry>/<jre25-runtime-image>:<patch-version>
@@ -93,7 +93,8 @@ If your organisation maintains hardened or certified base images in a private re
 
 ```dockerfile
 # ── Build ──────────────────────────────────────────
-FROM .../temurin-jdk25-buildenv:25.0.2 AS builder
+# Use your JDK 25 image — public or internal, pinned to patch version
+FROM eclipse-temurin:25-jdk AS builder
 WORKDIR /build
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
@@ -101,7 +102,8 @@ COPY src/ src/
 RUN mvn clean package -DskipTests -B
 
 # ── Runtime ────────────────────────────────────────
-FROM .../temurin-jre25-runtime:25.0.2-nonroot
+# Use your JRE 25 image — public or your organisation's equivalent
+FROM eclipse-temurin:25-jre
 COPY --from=builder /build/target/app.jar /app/app.jar
 EXPOSE 8080
 CMD ["java", "-jar", "/app/app.jar"]
@@ -168,21 +170,21 @@ These libraries interact deeply with the JVM and are most likely to need updates
 | **Hibernate** | Uses reflection and byte manipulation | Hibernate changelog |
 | **gRPC / Netty** | Native transport and reflection-heavy | gRPC and Netty GitHub releases |
 
-### Lesson from this migration
+### Real-world lesson
 
-`lombok-1.18.42` was in the project's local Maven cache and in `pom.xml`, but returned no results from the Maven Central search API — making it look like a phantom version. A direct `curl` to `repo1.maven.org` returned HTTP 200, confirming it exists on Central. The Lombok changelog confirmed `1.18.40` added JDK 25 support and `1.18.42` fixed a JDK 25 javadoc parsing bug. Without both checks, the "obvious" fix would have been to downgrade to `1.18.38` — which has no JDK 25 support and would have silently broken annotation processing.
+During a JDK 25 migration, `lombok-1.18.42` was present in a project's local Maven cache but returned no results from the Maven Central search API — making it look like a non-existent version. A direct `curl` to `repo1.maven.org` returned HTTP 200, confirming it was fully published on Central. The Lombok changelog confirmed `1.18.40` added JDK 25 support and `1.18.42` fixed a JDK 25 javadoc parsing bug, making it the correct version to keep. Without checking both sources, the apparent "fix" would have been to downgrade to `1.18.38` — which has no JDK 25 support and would have silently broken annotation processing across the whole project.
 
 **Always check both sources. Never trust one alone.**
 
 ## 1.4 CI configuration and version pinning
 
-- `.java-version` → `25` (or `25.0.2` for patch-level pinning)
-- `.sdkmanrc` → `java=25.0.2-tem`
-- `.tool-versions` → `java temurin-25.0.2`
-- GitHub Actions `setup-java`: `java-version: '25'`, `distribution: 'temurin'`
+- `.java-version` → `25` (or a full patch version like `25.0.x` for stricter pinning)
+- `.sdkmanrc` → `java=25.0.x-tem` (replace `x` with the patch you verified)
+- `.tool-versions` → `java temurin-25.0.x` (replace `x` with the patch you verified)
+- GitHub Actions `setup-java`: `java-version: '25'`, `distribution: 'temurin'` (or your chosen distribution)
 - Jenkinsfile / GitLab CI: update JDK tool references and Docker image tags
 
-**Reproducible builds require patch-level pinning.** `java-version: '25'` in GitHub Actions resolves to the latest `25.x.y` available on the runner — which can change silently when GitHub updates its tool cache. For maximum reproducibility, prefer a Docker-based CI pipeline where the exact image (`temurin-jdk25-buildenv:25.0.2`) is pinned in the Dockerfile and committed to the repo. When a new JDK patch ships, it becomes an explicit, reviewable commit.
+**Reproducible builds require patch-level pinning.** `java-version: '25'` in GitHub Actions resolves to the latest `25.x.y` available on the runner — which can change silently when GitHub updates its tool cache. For maximum reproducibility, prefer a Docker-based CI pipeline where the exact JDK image is pinned by patch version in the Dockerfile and committed to the repo. When a new JDK patch ships, it becomes an explicit, reviewable commit rather than a silent environment change.
 
 ## 1.5 First compilation and test
 

@@ -227,7 +227,7 @@ Delete old flags only needed for the upgrade window. If you moved off legacy mec
 
 4. **Use the latest stable version that explicitly declares JDK 25 support** — not the latest pre-release, not the assumed latest. Pre-release versions (alpha, beta, RC, snapshot) are forbidden in production builds unless there is no stable alternative and the risk is explicitly documented.
 
-**Real example from this migration**: Lombok `1.18.42` existed in the local Maven cache and in pom.xml, but was not indexed in the Maven Central search API. Direct repository verification (`curl https://repo1.maven.org/...`) confirmed it exists and is on Central. The GitHub changelog confirmed `1.18.40` added JDK 25 support and `1.18.42` fixed a JDK 25 javadoc parsing bug — making it the correct version. Without checking both sources, we would have either downgraded to `1.18.38` (wrong — no JDK 25 support) or trusted the search API gap (misleading).
+**Real-world example**: During a JDK 25 migration, Lombok `1.18.42` existed in the local Maven cache but was not yet indexed in the Maven Central search API — making it look like a phantom version. Direct repository verification (`curl https://repo1.maven.org/...`) confirmed it was fully published on Central. The GitHub changelog confirmed `1.18.40` added JDK 25 support and `1.18.42` fixed a JDK 25 javadoc parsing bug — making it the correct version to use. Without checking both sources, the "obvious" fix would have been to downgrade to `1.18.38`, which has no JDK 25 support and would have silently broken annotation processing.
 
 ---
 
@@ -250,17 +250,16 @@ The choice of Docker base image must match the role of the container:
 
 | Role | Image type | Why |
 |------|-----------|-----|
-| Compile source code | JDK buildenv | Needs `javac`, annotation processors, `javadoc` |
-| Run unit/integration tests | JDK buildenv | Needs `javac` for test compilation, JVM agent attachment (JaCoCo, Mockito byte-buddy), `jcmd` |
-| CI pipeline container | JDK buildenv | Runs Maven/Gradle, which compiles and tests |
-| Production runtime | JRE runtime | Smallest attack surface, no compiler, no dev tools |
-| Development server | JRE runtime | Should mirror production — if it needs the JDK, that's a red flag |
+| Compile source code | JDK image (full JDK) | Needs `javac`, annotation processors, `javadoc` |
+| Run unit/integration tests | JDK image (full JDK) | Needs `javac` for test compilation, JVM agent attachment (JaCoCo, Mockito byte-buddy), `jcmd` |
+| CI pipeline container | JDK image (full JDK) | Runs Maven/Gradle, which compiles and tests |
+| Production runtime | JRE image | Smallest attack surface, no compiler, no dev tools |
+| Development server | JRE image | Should mirror production — if it needs the JDK, that's a red flag |
 
 **The JRE runtime image is for running a pre-built JAR and nothing else.** Its job is:
 ```dockerfile
-# Use your JRE 25 base image — public (eclipse-temurin:25-jre)
-# or your organisation's hardened/certified equivalent, pinned to a patch version
-FROM <your-jre25-image>:<patch-version>
+# Use your JRE 25 base image, pinned to a patch version
+FROM eclipse-temurin:25-jre  # or your organisation's equivalent
 COPY target/app.jar /app/app.jar
 CMD ["java", "-jar", "/app/app.jar"]
 ```
